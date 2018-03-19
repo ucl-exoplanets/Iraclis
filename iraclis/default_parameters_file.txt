@@ -1,0 +1,62 @@
+data_directory                      .
+reduction                           True
+splitting                           False
+extraction                          True
+splitting_extraction                False
+fitting_white                       True
+fitting_spectrum                    True
+output_directory_copy               False
+# directory name or False
+
+
+target_x_offset                     0.0
+target_y_offset                     0.0
+aperture_lower_extend               -20.0
+aperture_upper_extend               20.0
+extraction_method                   gauss
+extraction_gauss_sigma              47.0
+white_lower_wavelength              10880.0
+white_upper_wavelength              16800.0
+bins_file                           ./bins_file.txt
+
+
+apply_up_down_stream_correction     True
+exclude_initial_orbits              1
+exclude_final_orbits                0
+exclude_initial_orbit_points        0
+
+
+mcmc_iterations                     150000
+mcmc_walkers                        50
+mcmc_burned_iterations              50000
+spectral_mcmc_iterations            150000
+spectral_mcmc_walkers               50
+spectral_mcmc_burned_iterations     50000
+
+
+first_orbit_ramp                    True
+second_order_ramp                   False
+mid_orbit_ramps                     True
+
+
+planet                              auto
+method                              claret
+white_ldc1                          0
+fit_ldc1                            False
+white_ldc2                          0
+fit_ldc2                            False
+white_ldc3                          0
+fit_ldc3                            False
+white_ldc4                          0
+fit_ldc4                            False
+rp_over_rs                          auto
+fp_over_fs                          auto
+period                              auto
+sma_over_rs                         auto
+fit_sma_over_rs                     False
+eccentricity                        auto
+inclination                         auto
+fit_inclination                     False
+periastron                          auto
+mid_time                            auto
+fit_mid_time                        True
