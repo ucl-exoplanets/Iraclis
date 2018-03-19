@@ -268,7 +268,7 @@ def process_visit(list_of_parameters_files):
         # copy results
         # create a backup if output directory exists
 
-        if output_directory_copy:
+        if output_directory_copy != 'False':
 
             if output_directory_copy != output_directory:
 
