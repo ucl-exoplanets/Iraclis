@@ -1,0 +1,4 @@
+*.pyc
+*.egg-info/
+MANIFEST.in
+iraclis/wfc3_calibration_files/
