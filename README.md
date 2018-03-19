@@ -43,7 +43,7 @@ Open a terminal and type: `pip install iraclis`
 
 Or download, unzip, `cd` in the unzipped directory, and type: `python setup.py install`
 
-You will find a test dataset, including instructions on how to use the pipeline here: 
-https://www.dropbox.com/s/wldx6wvkd9ptk51/iraclis_test_dataset_hatp26b.zip?dl=0
+You will find a test dataset, including instructions on how to use the pipeline here (62.3 MB): 
+https://www.dropbox.com/s/l3jcz8dzmw5mwg6/iraclis_test_dataset_hatp26b.zip?dl=0
 
 For any issues please send an E-mail at: atsiaras@star.ucl.ac.uk
