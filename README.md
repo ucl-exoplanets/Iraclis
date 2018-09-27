@@ -1,5 +1,7 @@
 # Iraclis
 
+<img src="https://github.com/ucl-exoplanets/Iraclis/blob/master/logo.jpg" width="20%">
+
 Analysis pipeline for **HST/WFC3** spectroscopic observations of exoplanet transits and eclipses
 
 A complete package to analyse single-object spatially scanned spectroscopic observations of extrasolar planets 
