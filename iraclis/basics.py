@@ -14,10 +14,12 @@ import time
 import sys
 import datetime
 import cPickle as pickle
+import docopt
 import gzip
 import socket
 
 import numpy as np
+from sklearn.decomposition import FastICA, PCA
 
 import scipy
 from scipy.interpolate import griddata
@@ -26,13 +28,9 @@ from scipy.interpolate import interp1d
 from scipy import interpolate
 
 import matplotlib
+matplotlib.use('TkAgg')
 from matplotlib import rc
 import matplotlib.pyplot as plt
-try:
-    plt.plot([0], [0], 'o')
-    plt.close()
-except:
-    plt.switch_backend('agg')
 import matplotlib.patches as patches
 
 from astropy.io import fits as pf
@@ -221,12 +219,13 @@ class PipelineVariable():
 
             elif self.auto_fill:
                 if isinstance(value, str):
-                    if value == 'auto':
+                    if value in ['auto', 'default', 'default_high', 'default_low', 'default_vlow']:
                         self.value = value
                     else:
                         try:
                             self.value = self.instance(value)
                         except ValueError:
+                            print value
                             raise PYWFC3InputError('Input {0} parameter is not valid, '
                                                    '{1} is expected.'.format(self.name, self.instance))
                 else:
@@ -298,21 +297,14 @@ class PipelineVariable():
 
         if isinstance(dictionary, PipelineVariable):
             if sub_dictionary is None:
-                dictionary.value[self.keyword] = self.instance(self.value)
+                dictionary.value[self.keyword] = self.value
             else:
-                dictionary.value[sub_dictionary][self.keyword] = self.instance(self.value)
+                dictionary.value[sub_dictionary][self.keyword] = self.value
         else:
             if sub_dictionary is None:
-                dictionary[self.keyword] = self.instance(self.value)
+                dictionary[self.keyword] = self.value
             else:
-                dictionary[sub_dictionary][self.keyword] = self.instance(self.value)
-
-    def from_var(self, variable):
-
-        if isinstance(variable, PipelineVariable):
-            self.set(variable.value)
-        else:
-            self.set(variable)
+                dictionary[sub_dictionary][self.keyword] = self.value
 
     def custom(self, value=None):
 
@@ -345,6 +337,18 @@ class PipelineVariablesSet():
         # pipeline
         self.pipeline_files_location = PipelineVariable(
             'pipeline_files_location', value=os.path.abspath(os.path.dirname(__file__)), instance=str)
+        self.pipeline_default_high_file = PipelineVariable(
+            'pipeline_default_high_file', value='default_high.txt', instance=str)
+        self.pipeline_default_low_file = PipelineVariable(
+            'pipeline_default_low_file', value='default_low.txt', instance=str)
+        self.pipeline_default_vlow_file = PipelineVariable(
+            'pipeline_default_vlow_file', value='default_vlow.txt', instance=str)
+        self.pipeline_default_high_file_g102 = PipelineVariable(
+            'pipeline_default_high_file', value='default_high_g102.txt', instance=str)
+        self.pipeline_default_low_file_g102 = PipelineVariable(
+            'pipeline_default_low_file', value='default_low_g102.txt', instance=str)
+        self.pipeline_default_vlow_file_g102 = PipelineVariable(
+            'pipeline_default_vlow_file', value='default_vlow_g102.txt', instance=str)
         self.pipeline_files_directory = PipelineVariable(
             'pipeline_files_directory', value='wfc3_calibration_files', instance=str)
         self.calibration_last_update = PipelineVariable(
@@ -365,11 +369,11 @@ class PipelineVariablesSet():
         self.reduction = PipelineVariable(
             'reduction', value=True, instance=bool, kind='u')
         self.splitting = PipelineVariable(
-            'splitting', value=False, instance=bool, kind='u')
+            'splitting', value=True, instance=bool, kind='u')
         self.extraction = PipelineVariable(
-            'extraction', value=True, instance=bool, kind='u')
+            'extraction', value=False, instance=bool, kind='u')
         self.splitting_extraction = PipelineVariable(
-            'splitting_extraction', value=False, instance=bool, kind='u')
+            'splitting_extraction', value=True, instance=bool, kind='u')
         self.fitting_white = PipelineVariable(
             'fitting_white', value=True, instance=bool, kind='u')
         self.fitting_spectrum = PipelineVariable(
@@ -385,7 +389,7 @@ class PipelineVariablesSet():
         self.output_directory = PipelineVariable(
             'output_directory', value='results', instance=str)
         self.output_directory_copy = PipelineVariable(
-            'output_directory_copy', value='results', instance=str, kind='u')
+            'output_directory_copy', value='False', instance=str, kind='u')
         self.light_curve_file = PipelineVariable(
             'light_curve_file', value='extracted_light_curves', instance=str)
         self.fitting_file = PipelineVariable(
@@ -557,25 +561,15 @@ class PipelineVariablesSet():
         self.extraction_method = PipelineVariable(
             'extraction_method', value='gauss', instance=str, kind='u')
         self.extraction_gauss_sigma = PipelineVariable(
-            'extraction_gauss_sigma', value=45.7, instance=float, kind='u')
+            'extraction_gauss_sigma', value=47.0, instance=float, kind='u')
         self.white_lower_wavelength = PipelineVariable(
-            'white_lower_wavelength', value=10800.0, instance=float, kind='u')
+            'white_lower_wavelength', value='default', instance=float, kind='u', auto_fill=True)
         self.white_upper_wavelength = PipelineVariable(
-            'white_upper_wavelength', value=16800.0, instance=float, kind='u')
+            'white_upper_wavelength', value='default', instance=float, kind='u', auto_fill=True)
         self.bins_file = PipelineVariable(
-            'bins_file', value='./bins_file.txt', instance=str, kind='u')
-        self.bins_lower_wavelength = PipelineVariable('bins_lower_wavelength',
-                                                      value=np.array([11240, 11440, 11640, 11840, 12040, 12240, 12440,
-                                                                      12640, 12840, 13040, 13240, 13440, 13640, 13840,
-                                                                      14040, 14240, 14440, 14640, 14840, 15040, 15240,
-                                                                      15440, 15640, 15840, 16040, 16240]),
-                                                      instance=np.array)
-        self.bins_upper_wavelength = PipelineVariable('bins_upper_wavelength',
-                                                      value=np.array([11440, 11640, 11840, 12040, 12240, 12440, 12640,
-                                                                      12840, 13040, 13240, 13440, 13640, 13840, 14040,
-                                                                      14240, 14440, 14640, 14840, 15040, 15240, 15440,
-                                                                      15640, 15840, 16040, 16240, 16440]),
-                                                      instance=np.array)
+            'bins_file', value='default_high', instance=str, kind='u')
+        self.bins_number = PipelineVariable(
+            'bins_number', value=0, instance=int)
         self.heliocentric_julian_date_array = PipelineVariable(
             'heliocentric_julian_date_array', value=np.array([]), instance=np.array)
         self.spectrum_direction_array = PipelineVariable(
@@ -598,6 +592,14 @@ class PipelineVariablesSet():
             'lower_wavelength', instance=float)
         self.upper_wavelength = PipelineVariable(
             'upper_wavelength', instance=float)
+        self.ldc1 = PipelineVariable(
+            'ldc1', instance=float, auto_fill=True)
+        self.ldc2 = PipelineVariable(
+            'ldc2', instance=float, auto_fill=True)
+        self.ldc3 = PipelineVariable(
+            'ldc3', instance=float, auto_fill=True)
+        self.ldc4 = PipelineVariable(
+            'ldc4', instance=float, auto_fill=True)
         self.flux_array = PipelineVariable(
             'flux', value=np.array([]), instance=np.array)
         self.error_array = PipelineVariable(
@@ -606,8 +608,6 @@ class PipelineVariablesSet():
             'ph_error', value=np.array([]), instance=np.array)
         self.white_dictionary = PipelineVariable(
             'white', value={}, instance=dict)
-        self.bins_dictionaries = [PipelineVariable('bin_{0}'.format(str(ff + 1).zfill(2)), value={}, instance=dict)
-                                  for ff in range(len(self.bins_lower_wavelength.value))]
         self.light_curve_split = PipelineVariable(
             'light_curve_split', 'split_', instance=str)
 
@@ -617,20 +617,19 @@ class PipelineVariablesSet():
         self.exclude_initial_orbits = PipelineVariable('exclude_initial_orbits', 'EXCL1', 1, int, 'u')
         self.exclude_final_orbits = PipelineVariable('exclude_final_orbits', 'EXCL2', 0, int, 'u')
         self.exclude_initial_orbit_points = PipelineVariable('exclude_initial_orbit_points', 'EXCP1', 0, int, 'u')
-        self.white_ldc1 = PipelineVariable('white_ldc1', 'WHTLDC1', 0, float, 'u')
-        self.white_ldc2 = PipelineVariable('white_ldc2', 'WHTLDC2', 0, float, 'u')
-        self.white_ldc3 = PipelineVariable('white_ldc3', 'WHTLDC3', 0, float, 'u')
-        self.white_ldc4 = PipelineVariable('white_ldc4', 'WHTLDC4', 0, float, 'u')
+        self.white_ldc1 = PipelineVariable('white_ldc1', 'WHTLDC1', 'default', float, 'u', auto_fill=True)
+        self.white_ldc2 = PipelineVariable('white_ldc2', 'WHTLDC2', 'default', float, 'u', auto_fill=True)
+        self.white_ldc3 = PipelineVariable('white_ldc3', 'WHTLDC3', 'default', float, 'u', auto_fill=True)
+        self.white_ldc4 = PipelineVariable('white_ldc4', 'WHTLDC4', 'default', float, 'u', auto_fill=True)
         self.fit_ldc1 = PipelineVariable('fit_ldc1', 'FITLDC1', False, bool, 'u')
         self.fit_ldc2 = PipelineVariable('fit_ldc2', 'FITLDC2', False, bool, 'u')
         self.fit_ldc3 = PipelineVariable('fit_ldc3', 'FITLDC3', False, bool, 'u')
         self.fit_ldc4 = PipelineVariable('fit_ldc4', 'FITLDC4', False, bool, 'u')
-        self.bins_ldc1 = PipelineVariable('bins_ldc1', 'BINSLDC1', 'auto', np.array, auto_fill=True)
-        self.bins_ldc2 = PipelineVariable('bins_ldc2', 'BINSLDC2', 'auto', np.array, auto_fill=True)
-        self.bins_ldc3 = PipelineVariable('bins_ldc3', 'BINSLDC3', 'auto', np.array, auto_fill=True)
-        self.bins_ldc4 = PipelineVariable('bins_ldc4', 'BINSLDC4', 'auto', np.array, auto_fill=True)
         self.planet = PipelineVariable('planet', 'PLANET', 'auto', str, 'u', auto_fill=True)
         self.method = PipelineVariable('method', 'METHOD', 'claret', str, 'u')
+        self.star_teff = PipelineVariable('star_teff', 'TEFF', 'auto', float, 'u', auto_fill=True)
+        self.star_logg = PipelineVariable('star_logg', 'LOGG', 'auto', float, 'u', auto_fill=True)
+        self.star_meta = PipelineVariable('star_meta', 'META', 'auto', float, 'u', auto_fill=True)
         self.rp_over_rs = PipelineVariable('rp_over_rs ', 'RP', 'auto', float, 'u', auto_fill=True)
         self.fp_over_fs = PipelineVariable('fp_over_fs', 'FP', 'auto', float, 'u', auto_fill=True)
         self.period = PipelineVariable('period', 'P', 'auto', float, 'u', auto_fill=True)
@@ -641,106 +640,155 @@ class PipelineVariablesSet():
         self.fit_inclination = PipelineVariable('fit_inclination', 'FITI', False, bool, 'u')
         self.periastron = PipelineVariable('periastron', 'W', 'auto', float, 'u', auto_fill=True)
         self.mid_time = PipelineVariable('mid_time', 'MT', 'auto', float, 'u', auto_fill=True)
-        self.fit_mid_time = PipelineVariable('fit_mid_time', 'FITMT', False, bool, 'u')
+        self.fit_mid_time = PipelineVariable('fit_mid_time', 'FITMT', True, bool, 'u')
         self.second_order_ramp = PipelineVariable('second_order_ramp', 'RAMP2', False, bool, 'u')
         self.first_orbit_ramp = PipelineVariable('first_orbit_ramp', 'FOR', True, bool, 'u')
         self.mid_orbit_ramps = PipelineVariable('mid_orbit_ramps', 'MOR', True, bool, 'u')
-        self.mcmc_iterations = PipelineVariable('mcmc_iterations', 'MCMCITER', 150000, int, 'u')
-        self.mcmc_walkers = PipelineVariable('mcmc_walkers', 'MCMCWALK', 200, int, 'u')
-        self.mcmc_burned_iterations = PipelineVariable('mcmc_burned_iterations', 'MCMCBURN', 50000, int, 'u')
-        self.spectral_mcmc_iterations = PipelineVariable('spectral_mcmc_iterations', 'bla', 150000, int, 'u')
-        self.spectral_mcmc_walkers = PipelineVariable('spectral_mcmc_walkers', 'blabla', 50, int, 'u')
+        self.mcmc_iterations = PipelineVariable('mcmc_iterations', 'MCMCI', 300000, int, 'u')
+        self.mcmc_walkers = PipelineVariable('mcmc_walkers', 'MCMCW', 200, int, 'u')
+        self.mcmc_burned_iterations = PipelineVariable('mcmc_burned_iterations', 'MCMCB', 200000, int, 'u')
+        self.spectral_mcmc_iterations = PipelineVariable('spectral_mcmc_iterations', 'SPMCMCI', 150000, int, 'u')
+        self.spectral_mcmc_walkers = PipelineVariable('spectral_mcmc_walkers', 'SPMCMCW', 50, int, 'u')
         self.spectral_mcmc_burned_iterations = PipelineVariable(
-            'spectral_mcmc_burned_iterations', 'blablabla', 50000, int, 'u')
+            'spectral_mcmc_burned_iterations', 'SPMCMCB', 50000, int, 'u')
 
-    # def set_bins(self, bins_lower_wavelength, bins_upper_wavelength,
-    #              bins_ldc1=None, bins_ldc2=None, bins_ldc3=None, bins_ldc4=None):
-    #
-    #     if bins_lower_wavelength is not None:
-    #         if bins_upper_wavelength is not None:
-    #
-    #             self.bins_lower_wavelength.set(bins_lower_wavelength)
-    #             self.bins_upper_wavelength.set(bins_upper_wavelength)
-    #             self.bins_dictionaries = [PipelineVariable('bin_{0}'.format(str(ff + 1).zfill(2)),
-    #                                                        value={}, instance=dict)
-    #                                       for ff in range(len(bins_lower_wavelength))]
-    #             if bins_ldc1 is None:
-    #                 self.bins_ldc1.set('auto')
-    #             else:
-    #                 self.bins_ldc1.set(bins_ldc1)
-    #             if bins_ldc2 is None:
-    #                 self.bins_ldc2.set('auto')
-    #             else:
-    #                 self.bins_ldc2.set(bins_ldc2)
-    #             if bins_ldc3 is None:
-    #                 self.bins_ldc3.set('auto')
-    #             else:
-    #                 self.bins_ldc3.set(bins_ldc3)
-    #             if bins_ldc4 is None:
-    #                 self.bins_ldc4.set('auto')
-    #             else:
-    #                 self.bins_ldc4.set(bins_ldc4)
+    def from_parameters_file(self, parameters_file=None):
 
-    def from_parameters_file(self, parameters_file):
+        pipeline_variables.reset()
 
-        parameters_file = os.path.abspath(parameters_file)
-        if not os.path.isfile(parameters_file):
-            raise PYWFC3FileError('No such file: ' + parameters_file)
-        print 'Loading parameters file: {} ...'.format(os.path.split(parameters_file)[1])
+        if parameters_file:
 
-        parameters_in_file = []
+            parameters_file = os.path.abspath(parameters_file)
+            if not os.path.isfile(parameters_file):
+                raise PYWFC3FileError('No such file: ' + parameters_file)
+            print 'Loading parameters file: {} ...'.format(os.path.split(parameters_file)[1])
 
-        for i in open(parameters_file).readlines():
-            if len(i.split()) > 0:
-                if i.split()[0][0] != '#':
-                    if i.split()[0] in vars(self):
-                        parameters_in_file.append(i.split()[0])
-                        vars(self)[i.split()[0]].set(i.split()[1])
+            parameters_in_file = []
 
-        for i in vars(self):
-            if not isinstance(vars(self)[i], list):
-                if i not in parameters_in_file:
-                    if vars(self)[i].kind == 'u':
-                        print 'WARNING: Parameter not in file, setting {0}={1}'.format(i, vars(self)[i].default_value)
+            for i in open(parameters_file).readlines():
+                if len(i.split()) > 0:
+                    if i.split()[0][0] != '#':
+                        if i.split()[0] in vars(self):
+                            parameters_in_file.append(i.split()[0])
+                            vars(self)[i.split()[0]].set(i.split()[1])
 
-        bins_file = os.path.abspath(self.bins_file.value)
-        if os.path.isfile(bins_file):
+            for i in vars(self):
+                if not isinstance(vars(self)[i], list):
+                    if i not in parameters_in_file:
+                        if vars(self)[i].kind == 'u':
+                            print 'WARNING: Parameter not in file, setting {0}={1}'.format(i,
+                                                                                           vars(self)[i].default_value)
+
+    def set_binning(self, input_data, white_lower_wavelength, white_upper_wavelength, white_ldc1,
+                    white_ldc2, white_ldc3, white_ldc4, bins_file):
+
+        grism = self.grism.custom()
+
+        if isinstance(input_data, DataSet):
+            if input_data.splitted:
+                grism.from_fits(fits_list(input_data)[0][0])
+            else:
+                grism.from_fits(fits_list(input_data)[0])
+        elif isinstance(input_data, pf.HDUList):
+            grism.from_fits(input_data)
+        elif isinstance(input_data, dict):
+            grism.from_dictionary(input_data)
+
+        if grism.value == 'G141':
+            if white_lower_wavelength == 'default':
+                white_lower_wavelength = 10800
+            if white_upper_wavelength == 'default':
+                white_upper_wavelength = 16800
+
+        elif grism.value == 'G102':
+            if white_lower_wavelength == 'default':
+                white_lower_wavelength = 8000
+            if white_upper_wavelength.value == 'default':
+                white_upper_wavelength = 11200
+
+        if os.path.isfile(os.path.abspath(bins_file)):
+            bins_file = os.path.abspath(bins_file)
             print 'Loading bins file: {} ...'.format(os.path.split(bins_file)[1])
 
-            if len(np.loadtxt(bins_file, unpack=True)) == 2:
-                bins_lower_wavelength, bins_upper_wavelength = np.loadtxt(bins_file, unpack=True)
-                bins_ldc1 = None
-                bins_ldc2 = None
-                bins_ldc3 = None
-                bins_ldc4 = None
-
-            else:
+            if len(np.loadtxt(bins_file, unpack=True)) == 6:
                 bins_lower_wavelength, bins_upper_wavelength, bins_ldc1, bins_ldc2, bins_ldc3, bins_ldc4 = \
                     np.loadtxt(bins_file, unpack=True)
+                bins_ldc1 = list(bins_ldc1)
+                bins_ldc2 = list(bins_ldc2)
+                bins_ldc3 = list(bins_ldc3)
+                bins_ldc4 = list(bins_ldc4)
 
-            self.bins_lower_wavelength.set(bins_lower_wavelength)
-            self.bins_upper_wavelength.set(bins_upper_wavelength)
-            self.bins_dictionaries = [PipelineVariable('bin_{0}'.format(str(ff + 1).zfill(2)), value={}, instance=dict)
-                                      for ff in range(len(bins_lower_wavelength))]
-            if bins_ldc1 is None:
-                self.bins_ldc1.set('auto')
             else:
-                self.bins_ldc1.set(bins_ldc1)
-            if bins_ldc2 is None:
-                self.bins_ldc2.set('auto')
-            else:
-                self.bins_ldc2.set(bins_ldc2)
-            if bins_ldc3 is None:
-                self.bins_ldc3.set('auto')
-            else:
-                self.bins_ldc3.set(bins_ldc3)
-            if bins_ldc4 is None:
-                self.bins_ldc4.set('auto')
-            else:
-                self.bins_ldc4.set(bins_ldc4)
+                raise PYWFC3FileError('Not valid bins file.')
+
+        elif bins_file == 'default_high':
+            print 'Loading bins file: {} ...'.format('default_high.txt')
+            if grism.value == 'G141':
+                bins_file = os.path.join(self.pipeline_files_location.value, self.pipeline_default_high_file.value)
+            elif grism.value == 'G102':
+                bins_file = os.path.join(self.pipeline_files_location.value, self.pipeline_default_high_file_g102.value)
+
+            bins_lower_wavelength, bins_upper_wavelength = np.loadtxt(bins_file, unpack=True)
+            bins_ldc1 = ['default_high' for ff in bins_lower_wavelength]
+            bins_ldc2 = ['default_high' for ff in bins_lower_wavelength]
+            bins_ldc3 = ['default_high' for ff in bins_lower_wavelength]
+            bins_ldc4 = ['default_high' for ff in bins_lower_wavelength]
+
+        elif bins_file == 'default_low':
+            print 'Loading bins file: {} ...'.format('default_low.txt')
+            if grism.value == 'G141':
+                bins_file = os.path.join(self.pipeline_files_location.value, self.pipeline_default_low_file.value)
+            elif grism.value == 'G102':
+                bins_file = os.path.join(self.pipeline_files_location.value, self.pipeline_default_low_file_g102.value)
+
+            bins_lower_wavelength, bins_upper_wavelength = np.loadtxt(bins_file, unpack=True)
+            bins_ldc1 = ['default_low' for ff in bins_lower_wavelength]
+            bins_ldc2 = ['default_low' for ff in bins_lower_wavelength]
+            bins_ldc3 = ['default_low' for ff in bins_lower_wavelength]
+            bins_ldc4 = ['default_low' for ff in bins_lower_wavelength]
+
+        elif bins_file == 'default_vlow':
+            print 'Loading bins file: {} ...'.format('default_vlow.txt')
+            if grism.value == 'G141':
+                bins_file = os.path.join(self.pipeline_files_location.value, self.pipeline_default_vlow_file.value)
+            elif grism.value == 'G102':
+                bins_file = os.path.join(self.pipeline_files_location.value, self.pipeline_default_vlow_file_g102.value)
+
+            bins_lower_wavelength, bins_upper_wavelength = np.loadtxt(bins_file, unpack=True)
+            bins_ldc1 = ['default_vlow' for ff in bins_lower_wavelength]
+            bins_ldc2 = ['default_vlow' for ff in bins_lower_wavelength]
+            bins_ldc3 = ['default_vlow' for ff in bins_lower_wavelength]
+            bins_ldc4 = ['default_vlow' for ff in bins_lower_wavelength]
 
         else:
-            print 'WARNING: No bins file found, defaults bins will be used.'
+            raise PYWFC3FileError('No bins file found')
+
+        lower_wavelength = self.lower_wavelength.custom()
+        upper_wavelength = self.upper_wavelength.custom()
+        flux_array = self.flux_array.custom()
+        error_array = self.error_array.custom()
+        ph_error_array = self.ph_error_array.custom()
+        ldc1 = self.ldc1.custom()
+        ldc2 = self.ldc2.custom()
+        ldc3 = self.ldc3.custom()
+        ldc4 = self.ldc4.custom()
+
+        white_dictionary = PipelineVariable('white', value={}, instance=dict)
+        bins_dictionaries = [PipelineVariable('bin_{0}'.format(str(ff + 1).zfill(2)), value={}, instance=dict)
+                             for ff in range(len(bins_lower_wavelength))]
+
+        for i, j in enumerate([white_dictionary] + bins_dictionaries):
+            flux_array.to_dictionary(j)
+            error_array.to_dictionary(j)
+            ph_error_array.to_dictionary(j)
+            lower_wavelength.to_dictionary(j, value=([white_lower_wavelength] + list(bins_lower_wavelength))[i])
+            upper_wavelength.to_dictionary(j, value=([white_upper_wavelength] + list(bins_upper_wavelength))[i])
+            ldc1.to_dictionary(j, value=([white_ldc1] + bins_ldc1)[i])
+            ldc2.to_dictionary(j, value=([white_ldc2] + bins_ldc2)[i])
+            ldc3.to_dictionary(j, value=([white_ldc3] + bins_ldc3)[i])
+            ldc4.to_dictionary(j, value=([white_ldc4] + bins_ldc4)[i])
+
+        return white_dictionary, bins_dictionaries
 
     def reset(self):
 

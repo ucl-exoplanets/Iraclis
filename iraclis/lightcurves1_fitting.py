@@ -1,3 +1,15 @@
+"""
+lightcurves1_fitting.py
+
+Includes all the function that performs the fitting. This takes as input a dictionary that contains the extracted
+light-curves (produced by the photometry functions in the images3_extraction.py file) and returns a dictionary
+that contains the fitting results.
+
+Functions included:
+fitting:    ...
+
+"""
+
 from basics import *
 
 
@@ -7,9 +19,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             mcmc_iterations=None, mcmc_walkers=None, mcmc_burned_iterations=None,
             spectral_mcmc_iterations=None, spectral_mcmc_walkers=None, spectral_mcmc_burned_iterations=None,
             first_orbit_ramp=None, second_order_ramp=None, mid_orbit_ramps=None,
-            planet=None, method=None,
-            white_ldc1=None, white_ldc2=None, white_ldc3=None, white_ldc4=None,
-            bins_ldc1=None, bins_ldc2=None, bins_ldc3=None, bins_ldc4=None,
+            planet=None, method=None, star_teff=None, star_logg=None, star_meta=None,
+            white_ldc1=None, white_ldc2=None, white_ldc3=None, white_ldc4=None, bins_file=None,
             fit_ldc1=None, fit_ldc2=None, fit_ldc3=None, fit_ldc4=None,
             rp_over_rs=None, fp_over_fs=None, period=None,
             sma_over_rs=None, fit_sma_over_rs=None, eccentricity=None, inclination=None, fit_inclination=None,
@@ -34,14 +45,14 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     mid_orbit_ramps = pipeline_variables.mid_orbit_ramps.custom(mid_orbit_ramps)
     planet = pipeline_variables.planet.custom(planet)
     method = pipeline_variables.method.custom(method)
+    star_teff = pipeline_variables.star_teff.custom(star_teff)
+    star_logg = pipeline_variables.star_logg.custom(star_logg)
+    star_meta = pipeline_variables.star_meta.custom(star_meta)
     white_ldc1 = pipeline_variables.white_ldc1.custom(white_ldc1)
     white_ldc2 = pipeline_variables.white_ldc2.custom(white_ldc2)
     white_ldc3 = pipeline_variables.white_ldc3.custom(white_ldc3)
     white_ldc4 = pipeline_variables.white_ldc4.custom(white_ldc4)
-    bins_ldc1 = pipeline_variables.bins_ldc1.custom(bins_ldc1)
-    bins_ldc2 = pipeline_variables.bins_ldc2.custom(bins_ldc2)
-    bins_ldc3 = pipeline_variables.bins_ldc3.custom(bins_ldc3)
-    bins_ldc4 = pipeline_variables.bins_ldc4.custom(bins_ldc4)
+    bins_file = pipeline_variables.bins_file.custom(bins_file)
     fit_ldc1 = pipeline_variables.fit_ldc1.custom(fit_ldc1)
     fit_ldc2 = pipeline_variables.fit_ldc2.custom(fit_ldc2)
     fit_ldc3 = pipeline_variables.fit_ldc3.custom(fit_ldc3)
@@ -63,51 +74,85 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     ra_target = pipeline_variables.ra_target.custom()
     ra_target.from_dictionary(light_curve)
 
-    dec_target = pipeline_variables.dec_target
+    dec_target = pipeline_variables.dec_target.custom()
     dec_target.from_dictionary(light_curve)
 
-    exposure_time = pipeline_variables.exposure_time
+    exposure_time = pipeline_variables.exposure_time.custom()
     exposure_time.from_dictionary(light_curve)
 
-    subarray_size = pipeline_variables.sub_array_size
+    bins_number = pipeline_variables.bins_number.custom()
+    bins_number.from_dictionary(light_curve)
+
+    subarray_size = pipeline_variables.sub_array_size.custom()
     subarray_size.from_dictionary(light_curve)
 
-    heliocentric_julian_date_array = pipeline_variables.heliocentric_julian_date_array
+    grism = pipeline_variables.grism.custom()
+    grism.from_dictionary(light_curve)
+
+    heliocentric_julian_date_array = pipeline_variables.heliocentric_julian_date_array.custom()
     heliocentric_julian_date_array.from_dictionary(light_curve)
 
-    spectrum_direction_array = pipeline_variables.spectrum_direction_array
+    spectrum_direction_array = pipeline_variables.spectrum_direction_array.custom()
     spectrum_direction_array.from_dictionary(light_curve)
 
-    sky_background_level_array = pipeline_variables.sky_background_level_array
+    sky_background_level_array = pipeline_variables.sky_background_level_array.custom()
     sky_background_level_array.from_dictionary(light_curve)
 
-    star_x_position_array = pipeline_variables.x_star_array
+    star_x_position_array = pipeline_variables.x_star_array.custom()
     star_x_position_array.from_dictionary(light_curve)
 
-    x_shift_error_array = pipeline_variables.x_shift_error_array
+    x_shift_error_array = pipeline_variables.x_shift_error_array.custom()
     x_shift_error_array.from_dictionary(light_curve)
 
-    star_y_position_array = pipeline_variables.y_star_array
+    star_y_position_array = pipeline_variables.y_star_array.custom()
     star_y_position_array.from_dictionary(light_curve)
 
-    y_shift_error_array = pipeline_variables.y_shift_error_array
+    y_shift_error_array = pipeline_variables.y_shift_error_array.custom()
     y_shift_error_array.from_dictionary(light_curve)
 
-    scan_length_array = pipeline_variables.scan_length_array
+    scan_length_array = pipeline_variables.scan_length_array.custom()
     scan_length_array.from_dictionary(light_curve)
 
-    scan_length_error_array = pipeline_variables.scan_length_error_array
+    scan_length_error_array = pipeline_variables.scan_length_error_array.custom()
     scan_length_error_array.from_dictionary(light_curve)
 
-    white_dictionary = pipeline_variables.white_dictionary
-    bins_dictionaries = pipeline_variables.bins_dictionaries
-    for i in [white_dictionary] + bins_dictionaries:
-        i.from_dictionary(light_curve)
+    white_lower_wavelength = pipeline_variables.white_upper_wavelength
+    white_upper_wavelength = pipeline_variables.white_upper_wavelength
 
-    flux_array = pipeline_variables.flux_array
-    error_array = pipeline_variables.error_array
-    lower_wavelength = pipeline_variables.lower_wavelength
-    upper_wavelength = pipeline_variables.upper_wavelength
+    flux_array = pipeline_variables.flux_array.custom()
+    error_array = pipeline_variables.error_array.custom()
+    lower_wavelength = pipeline_variables.lower_wavelength.custom()
+    upper_wavelength = pipeline_variables.upper_wavelength.custom()
+    ldc1 = pipeline_variables.ldc1.custom()
+    ldc2 = pipeline_variables.ldc2.custom()
+    ldc3 = pipeline_variables.ldc3.custom()
+    ldc4 = pipeline_variables.ldc4.custom()
+
+    # set bins
+
+    white_dictionary, bins_dictionaries = \
+        pipeline_variables.set_binning(light_curve, white_lower_wavelength.value, white_upper_wavelength.value,
+                                       white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
+                                       bins_file.value)
+
+    white_dictionary_x, bins_dictionaries_x = \
+        pipeline_variables.set_binning(light_curve, white_lower_wavelength.value, white_upper_wavelength.value,
+                                       white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
+                                       bins_file.value)
+
+    if bins_number.value != len(bins_dictionaries):
+        raise PYWFC3FileError('Bin file used does not match the extracted bins.')
+
+    for i, j in enumerate([white_dictionary] + bins_dictionaries):
+        j.from_dictionary(light_curve)
+        ldc1.from_dictionary(([white_dictionary_x] + bins_dictionaries_x)[i])
+        ldc1.to_dictionary(j)
+        ldc2.from_dictionary(([white_dictionary_x] + bins_dictionaries_x)[i])
+        ldc2.to_dictionary(j)
+        ldc3.from_dictionary(([white_dictionary_x] + bins_dictionaries_x)[i])
+        ldc3.to_dictionary(j)
+        ldc4.from_dictionary(([white_dictionary_x] + bins_dictionaries_x)[i])
+        ldc4.to_dictionary(j)
 
     # up-stream / down-stream correction
 
@@ -124,6 +169,57 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             print 'No correction for up-stream/down-stream effect is needed ... '
 
     if apply_up_down_stream_correction.value:
+
+        # for scan_direction in [1.0, -1.0]:
+        #
+        #     fr = np.where(spectrum_direction_array.value == scan_direction)[0]
+        #
+        #     if len(fr) > 0:
+        #
+        #         zerofr = star_y_position_array.value[fr]
+        #         sigmfr = scan_length_array.value[fr]
+        #         begnfr = zerofr
+        #         fitfr = np.poly1d(np.polyfit(begnfr, sigmfr, 1))
+        #
+        #         # if scan_direction > 0:
+        #         #     ur = (512.0 / 261.0) * 512.0 / 2.93
+        #         #     e = 8.774724
+        #         #     Y = 522.0
+        #         #
+        #         #     l1 = fitfr(begnfr)
+        #         #     y1 = begnfr - (1014.0 - 522.0) / 2
+        #         #
+        #         #     correction = np.nanmean(((l1[0] / (- (l1[0] - Y + 2 * y1[0]) / ur + e)) / (l1 / (- (l1 - Y + 2 * y1) / ur + e)) - 1.0) / (y1 - y1[0]))
+        #         #     print correction
+        #         #     correction = 0.000095
+        #
+        #         for i in [white_dictionary] + bins_dictionaries:
+        #
+        #             detector_length = subarray_size.value
+        #
+        #             ur = (512.0 / (detector_length / 2.0)) * 512.0 / 2.93
+        #             e = 8.774724
+        #             l1 = fitfr(begnfr)
+        #             if scan_direction > 0:
+        #                 y1 = begnfr - (1014.0 - detector_length) / 2
+        #             else:
+        #                 y1 = detector_length - (begnfr - (1014.0 - detector_length) / 2)
+        #
+        #             flux_array.from_dictionary(i)
+        #             flux = flux_array.value
+        #             # flux[fr] = flux[fr] / ((fitfr(begnfr) / fitfr(begnfr[0])) * (1 + correction * (begnfr - begnfr[0])))
+        #             flux[fr] = flux[fr] / (- (l1 - detector_length + 2 * y1) / ur + e)
+        #             # plt.plot(flux, 'o')
+        #             # plt.show()
+        #             flux_array.set(flux)
+        #             flux_array.to_dictionary(i)
+        #
+        #             error_array.from_dictionary(i)
+        #             error = error_array.value
+        #             # error[fr] = error[fr] / ((fitfr(begnfr) / fitfr(begnfr[0])) * (1 + correction * (begnfr - begnfr[0])))
+        #             error[fr] = error[fr] / (- (l1 - detector_length + 2 * y1) / ur + e)
+        #             error_array.set(error)
+        #             error_array.to_dictionary(i)
 
         for scan_direction in [1.0, -1.0]:
 
@@ -242,6 +338,72 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     ophase = np.min(ophase, 0)
 
+    # outliers filter
+
+    if fitted_white_light_curve is None:
+
+        lightcurves = []
+        for i in bins_dictionaries:
+            flux_array.from_dictionary(i)
+            lightcurves.append(flux_array.value)
+
+        ica = FastICA(n_components=len(lightcurves), max_iter=1000)
+        components = ica.fit_transform(np.array(lightcurves).T).T
+
+        indices_to_remain = []
+        for i in components:
+            indices_to_remain.append(np.array(np.abs(i - np.median(i)) < 20 * np.median(np.abs(i - np.median(i)))))
+        indices_to_remain = np.where(np.product(indices_to_remain, 0))[0]
+        indices_to_remain = np.sort(np.unique(np.array(indices_to_remain)))
+
+        for i in [heliocentric_julian_date_array, spectrum_direction_array, sky_background_level_array,
+                  star_x_position_array, x_shift_error_array, star_y_position_array, y_shift_error_array, scan_length_array,
+                  scan_length_error_array]:
+
+            i.set(i.value[indices_to_remain])
+            i.to_dictionary(light_curve)
+
+        for i in [white_dictionary] + bins_dictionaries:
+
+            flux_array.from_dictionary(i)
+            flux_array.set(flux_array.value[indices_to_remain])
+            flux_array.to_dictionary(i)
+
+            error_array.from_dictionary(i)
+            error_array.set(error_array.value[indices_to_remain])
+            error_array.to_dictionary(i)
+
+        ophase = ophase[indices_to_remain]
+        dphase = dphase[indices_to_remain]
+        fphase = fphase[indices_to_remain]
+
+    else:
+
+        white_fit_hjd = fitted_white_light_curve['lightcurves']['white']['input_time_series']['hjd']
+        htime = heliocentric_julian_date_array.value
+        indices_to_remain = np.where([(ff in white_fit_hjd) for ff in htime])[0]
+
+        for i in [heliocentric_julian_date_array, spectrum_direction_array, sky_background_level_array,
+                  star_x_position_array, x_shift_error_array, star_y_position_array, y_shift_error_array,
+                  scan_length_array,
+                  scan_length_error_array]:
+            i.set(i.value[indices_to_remain])
+            i.to_dictionary(light_curve)
+
+        for i in [white_dictionary] + bins_dictionaries:
+            flux_array.from_dictionary(i)
+            flux_array.set(flux_array.value[indices_to_remain])
+            flux_array.to_dictionary(i)
+
+            error_array.from_dictionary(i)
+            error_array.set(error_array.value[indices_to_remain])
+            error_array.to_dictionary(i)
+
+        ophase = ophase[indices_to_remain]
+        dphase = dphase[indices_to_remain]
+        fphase = fphase[indices_to_remain]
+
+
     # match forward and reverse scans
 
     fr = np.where(spectrum_direction_array.value > 0)[0]
@@ -296,6 +458,15 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
         print 'Some parameters are set to auto, resetting to the OEC values for {0} ...'.format(planet.value)
 
+        if star_logg.value == 'auto':
+            star_logg.set(oec_parameters[1])
+
+        if star_teff.value == 'auto':
+            star_teff.set(oec_parameters[2])
+
+        if star_meta.value == 'auto':
+            star_meta.set(oec_parameters[3])
+
         if rp_over_rs.value == 'auto':
             rp_over_rs.set(oec_parameters[4])
 
@@ -320,12 +491,60 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         if mid_time.value == 'auto':
             mid_time.set(oec_parameters[11])
 
-    if (isinstance(bins_ldc1.value, str) or isinstance(bins_ldc2.value, str)
-       or isinstance(bins_ldc3.value, str) or isinstance(bins_ldc4.value, str)):
-        bins_ldc1.set(np.ones(len(bins_dictionaries)) * white_ldc1.value)
-        bins_ldc2.set(np.ones(len(bins_dictionaries)) * white_ldc2.value)
-        bins_ldc3.set(np.ones(len(bins_dictionaries)) * white_ldc3.value)
-        bins_ldc4.set(np.ones(len(bins_dictionaries)) * white_ldc4.value)
+    for j in range(len(bins_dictionaries)):
+
+        ldc1.from_dictionary(bins_dictionaries[j])
+
+        if isinstance(ldc1.value, str):
+
+            method.set('claret')
+            if star_teff.value < 4000.0:
+                stellar_model = 'PHOENIX'
+            else:
+                stellar_model = 'ATLAS'
+
+            if ldc1.value == 'default_high' and grism.value == 'G141':
+                band = 'WFC3G141H'
+            elif ldc1.value == 'default_low' and grism.value == 'G141':
+                band = 'WFC3G141L'
+            elif ldc1.value == 'default_vlow' and grism.value == 'G141':
+                band = 'WFC3G141VL'
+            elif ldc1.value == 'default_high' and grism.value == 'G102':
+                band = 'WFC3G102H'
+            elif ldc1.value == 'default_low' and grism.value == 'G102':
+                band = 'WFC3G102L'
+            else:
+                band = 'WFC3G102VL'
+
+            a1, a2, a3, a4 = plc.clablimb('claret', star_logg.value, star_teff.value, 0.0, '{0}{1}'.format(band, j),
+                                          stellar_model=stellar_model)
+
+            ldc1.to_dictionary(bins_dictionaries[j], value=a1)
+            ldc2.to_dictionary(bins_dictionaries[j], value=a2)
+            ldc3.to_dictionary(bins_dictionaries[j], value=a3)
+            ldc4.to_dictionary(bins_dictionaries[j], value=a4)
+
+    ldc1.from_dictionary(white_dictionary)
+
+    if ldc1.value == 'default':
+        method.set('claret')
+        if star_teff.value < 4000.0:
+            stellar_model = 'PHOENIX'
+        else:
+            stellar_model = 'ATLAS'
+
+        if grism.value == 'G141':
+            band = 'WFC3G141W'
+        else:
+            band = 'WFC3G102W'
+
+        a1, a2, a3, a4 = plc.clablimb('claret', star_logg.value, star_teff.value, 0.0, band,
+                                      stellar_model=stellar_model)
+
+        ldc1.to_dictionary(white_dictionary, value=a1)
+        ldc2.to_dictionary(white_dictionary, value=a2)
+        ldc3.to_dictionary(white_dictionary, value=a3)
+        ldc4.to_dictionary(white_dictionary, value=a4)
 
     # set observation
 
@@ -465,9 +684,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits2.append(3000.0)
 
     # ld1
+    ldc1.from_dictionary(white_dictionary)
     names.append('ldc_1')
     print_names.append('ldc_1')
-    initial.append(white_ldc1.value)
+    initial.append(ldc1.value)
     if fit_ldc1.value:
         limits1.append(0.000001)
         limits2.append(0.999999)
@@ -476,9 +696,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits2.append(np.nan)
 
     # ld2
+    ldc2.from_dictionary(white_dictionary)
     names.append('ldc_2')
     print_names.append('ldc_2')
-    initial.append(white_ldc2.value)
+    initial.append(ldc2.value)
     if fit_ldc2.value:
         limits1.append(0.000001)
         limits2.append(0.999999)
@@ -487,9 +708,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits2.append(np.nan)
 
     # ld3
+    ldc3.from_dictionary(white_dictionary)
     names.append('ldc_3')
     print_names.append('ldc_3')
-    initial.append(white_ldc3.value)
+    initial.append(ldc3.value)
     if fit_ldc3.value:
         limits1.append(0.000001)
         limits2.append(0.999999)
@@ -497,10 +719,11 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits1.append(np.nan)
         limits2.append(np.nan)
 
-    # ld1
+    # ld4
+    ldc4.from_dictionary(white_dictionary)
     names.append('ldc_4')
     print_names.append('ldc_4')
-    initial.append(white_ldc4.value)
+    initial.append(ldc4.value)
     if fit_ldc4.value:
         limits1.append(0.000001)
         limits2.append(0.999999)
@@ -707,6 +930,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
         for j in range(len(bins_dictionaries)):
 
+            ldc1.from_dictionary(bins_dictionaries[j])
+            ldc2.from_dictionary(bins_dictionaries[j])
+            ldc3.from_dictionary(bins_dictionaries[j])
+            ldc4.from_dictionary(bins_dictionaries[j])
             model_white = fitting_results['lightcurves']['white']['output_time_series']['transit']
             flux_array.from_dictionary(white_dictionary)
             data_white = flux_array.value
@@ -758,7 +985,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             # ld1
             names.append('ldc_1')
             print_names.append('ldc_1')
-            initial.append(bins_ldc1.value[j])
+            initial.append(ldc1.value)
             if fit_ldc1.value:
                 limits1.append(0.000001)
                 limits2.append(0.999999)
@@ -769,7 +996,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             # ld2
             names.append('ldc_2')
             print_names.append('ldc_2')
-            initial.append(bins_ldc2.value[j])
+            initial.append(ldc2.value)
             if fit_ldc2.value:
                 limits1.append(0.000001)
                 limits2.append(0.999999)
@@ -780,7 +1007,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             # ld3
             names.append('ldc_3')
             print_names.append('ldc_3')
-            initial.append(bins_ldc3.value[j])
+            initial.append(ldc3.value)
             if fit_ldc3.value:
                 limits1.append(0.000001)
                 limits2.append(0.999999)
@@ -791,7 +1018,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             # ld1
             names.append('ldc_4')
             print_names.append('ldc_4')
-            initial.append(bins_ldc4.value[j])
+            initial.append(ldc4.value)
             if fit_ldc4.value:
                 limits1.append(0.000001)
                 limits2.append(0.999999)
@@ -965,8 +1192,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                 lambda_mean.append(float(fitting_results['lightcurves'][bin_name]['wavelength']['lambda_mean'])
                                    / 10000.0)
                 rprs.append(fitting_results['lightcurves'][bin_name]['parameters']['rp']['value'])
-                rprs_error.append(max(fitting_results['lightcurves'][bin_name]['parameters']['rp']['m_error'],
-                                      fitting_results['lightcurves'][bin_name]['parameters']['rp']['p_error']))
+                rprs_error.append(np.mean([fitting_results['lightcurves'][bin_name]['parameters']['rp']['m_error'],
+                                           fitting_results['lightcurves'][bin_name]['parameters']['rp']['p_error']]))
                 lambda_width.append(float(fitting_results['lightcurves'][bin_name]['wavelength']['lambda_width'])
                                     / 10000.0)
 
@@ -985,8 +1212,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                 lambda_mean.append(float(fitting_results['lightcurves'][bin_name]['wavelength']['lambda_mean'])
                                    / 10000.0)
                 fpfs.append(fitting_results['lightcurves'][bin_name]['parameters']['fp']['value'])
-                fpfs_error.append(max(fitting_results['lightcurves'][bin_name]['parameters']['fp']['m_error'],
-                                      fitting_results['lightcurves'][bin_name]['parameters']['fp']['p_error']))
+                fpfs_error.append(np.mean([fitting_results['lightcurves'][bin_name]['parameters']['fp']['m_error'],
+                                           fitting_results['lightcurves'][bin_name]['parameters']['fp']['p_error']]))
                 lambda_width.append(float(fitting_results['lightcurves'][bin_name]['wavelength']['lambda_width'])
                                     / 10000.0)
             fitting_results['spectrum'] = {'wavelength': np.array(lambda_mean),
@@ -1426,7 +1653,7 @@ def plot_fitting(dictionary, directory):
 
         plt.ylabel(r'$\mathrm{bin} \ \mathrm{width} \, (\mu \mathrm{m})$', fontsize=15)
 
-        plt.xlim(1.1, 1.75)
+
         adjust_ticks()
         plt.tick_params(labelbottom='off')
 
@@ -1442,7 +1669,7 @@ def plot_fitting(dictionary, directory):
 
         plt.ylabel(r'$\mathrm{limb}$' + '\n' + r'$\mathrm{darkening}$', fontsize=15)
 
-        plt.xlim(1.1, 1.75)
+
         adjust_ticks()
         plt.tick_params(labelbottom='off')
 
@@ -1459,7 +1686,7 @@ def plot_fitting(dictionary, directory):
 
         dy = 0.6 * (np.max(rp) - np.min(rp)) + np.max(rp_er)
         plt.ylim((np.max(rp) + np.min(rp)) / 2 - dy, (np.max(rp) + np.min(rp)) / 2 + dy)
-        plt.xlim(1.1, 1.75)
+
 
         adjust_ticks()
         plt.tick_params(labelbottom='off')
@@ -1474,7 +1701,7 @@ def plot_fitting(dictionary, directory):
 
             plt.ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
 
-            plt.xlim(1.1, 1.75)
+
             adjust_ticks()
             plt.tick_params(labelbottom='off')
 
@@ -1501,7 +1728,7 @@ def plot_fitting(dictionary, directory):
 
             plt.ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
 
-            plt.xlim(1.1, 1.75)
+
             adjust_ticks()
             plt.tick_params(labelbottom='off')
 
@@ -1511,7 +1738,7 @@ def plot_fitting(dictionary, directory):
 
             plt.ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
 
-            plt.xlim(1.1, 1.75)
+
             adjust_ticks()
             plt.tick_params(labelbottom='off')
 
@@ -1524,7 +1751,7 @@ def plot_fitting(dictionary, directory):
         plt.ylabel(r'$\mathrm{ramp} \ \mathrm{slope}$', fontsize=15)
         plt.xlabel(r'$\lambda \, (\mu \mathrm{m})$', fontsize=15)
 
-        plt.xlim(1.1, 1.75)
+
         adjust_ticks()
 
         plt.subplots_adjust(hspace=0)
@@ -1622,14 +1849,42 @@ def plot_fitting(dictionary, directory):
         save_figure(directory, name=export_file)
         plt.close('all')
 
-    plot_diagnostics(dictionary['lightcurves'], 'diagnostics')
-    plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
-    plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
-    plot_fitting_i(dictionary['lightcurves'], 'white', 'white_fitting')
+    try:
+        plot_diagnostics(dictionary['lightcurves'], 'diagnostics')
+    except:
+        pass
+
+    try:
+        plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
+    except:
+        pass
+
+    try:
+        plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
+    except:
+        pass
+
+    try:
+        plot_fitting_i(dictionary['lightcurves'], 'white', 'white_fitting')
+    except:
+        pass
+
     try:
         plot_fitting_all(dictionary['lightcurves'], 'all_fitting')
+    except:
+        pass
+
+    try:
         plot_spectral_results(dictionary['lightcurves'], 'spectral_results')
+    except:
+        pass
+
+    try:
         plot_correlations(dictionary['lightcurves'], 'bin_10', 'bin_10_correlations')
+    except:
+        pass
+
+    try:
         plot_fitting_i(dictionary['lightcurves'], 'bin_10', 'bin_10_fitting')
-    except KeyError:
+    except:
         pass

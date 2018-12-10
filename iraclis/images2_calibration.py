@@ -1,3 +1,28 @@
+"""
+images2_calibrationn.py
+
+Includes all the functions that perform calibration processes.
+
+All the main functions take as input either an HDUList object or a DataSet object, as defined in the basics.py file, and
+return an updated version of the input. In all cases, the default values for the input parameters are the values in the
+respective pipeline.variables object.
+
+Main functions included:
+calibration:                ...
+split_recalibration:        ...
+
+All the supporting functions take as input an HDUList object and return an updated version
+(apart from the get_standard_flat function which does not affect the input). The parameters for the supporting functions
+do not have default values, as their purpose is to be used only in this particular file.
+
+Supporting functions included:
+get_position_diagnostics:   ...
+get_standard_flat:          ...
+get_comparison_position:    ...
+get_relative_position:      ...
+get_scan_length:            ...
+"""
+
 from basics import *
 
 
@@ -65,8 +90,8 @@ def get_standard_flat(fits, sample, use_standard_flat):
         a = fits[1].data / flatfield
         detection_limit = 10
 
-        ylim1 = spectrum_bottom.value - 1
-        ylim2 = spectrum_top.value + 1
+        ylim1 = spectrum_bottom.value - 5
+        ylim2 = spectrum_top.value + 5
         xlim1 = spectrum_left.value
         xlim2 = spectrum_right.value
 
@@ -306,6 +331,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
     comparison_index_forward = pipeline_variables.comparison_index_forward.custom(comparison_index_forward)
     comparison_index_reverse = pipeline_variables.comparison_index_reverse.custom(comparison_index_reverse)
     use_standard_flat = pipeline_variables.use_standard_flat.custom(use_standard_flat)
+
     spectrum_bottom = pipeline_variables.spectrum_bottom.custom()
     spectrum_top = pipeline_variables.spectrum_top.custom()
     spectrum_left = pipeline_variables.spectrum_left.custom()
@@ -516,7 +542,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             margin1 = max(spectrum_left.value - 40, 6)
             margin2 = min(spectrum_right.value + 40, len(fits[1].data) - 6)
             best_fit, covariance = curve_fit(fit_xshift, testx[margin1:margin2], testy[margin1:margin2],
-                                             p0=[spectrum_right.value - comparisons[comparison_name]['spectrum_right'],
+                                             p0=[-spectrum_right.value + comparisons[comparison_name]['spectrum_right'],
                                              np.median(testy[margin1:margin2] / interp_x(testx[margin1:margin2]))])
 
             comparison_x_star.to_fits(fits, value=comparisons[comparison_name]['x_star'])
@@ -541,7 +567,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             margin1 = max(first_spectrum_bottom.value - 20, 6)
             margin2 = min(first_spectrum_top.value + 20, len(fits[1].data) - 6)
             best_fit, covariance = curve_fit(fit_yshift, testx[margin1:margin2], testy[margin1:margin2],
-                                             p0=[first_spectrum_bottom.value -
+                                             p0=[-first_spectrum_bottom.value +
                                                  comparisons[comparison_name]['spectrum_bottom'],
                                              np.median(testy[margin1:margin2] / interp_y(testx[margin1:margin2]))])
 
@@ -615,19 +641,34 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
             y0coeff1, y0coeff2, y0coeff3, y0coeff4, y0coeff5, y0coeff6 = best_fit
 
-            if len(fits[1].data) < 200:
+            try:
+                tests = []
+                for ap in [-10 ** ff for ff in range(6, 9)] + [10 ** ff for ff in range(6, 9)]:
+                    for bp in [1, 10000, -10000]:
+                        for cp in [10000, -10000]:
+                            for dp in [-10 ** 6, 10 ** 6]:
+                                for ep in [1, -10 ** 4, 10 ** 4]:
+                                    test = np.sum((wdpt((xl.flatten() - cor, wl.flatten()), ap, bp, cp, dp, ep, 1) -
+                                                   (yl.flatten() - cor))**2)
+                                    tests.append([test, [ap, bp, cp, dp, ep, 1]])
+
+                tests.sort()
                 best_fit, covariance = curve_fit(wdpt, (xl.flatten() - cor, wl.flatten()), yl.flatten() - cor,
-                                                 p0=[-10 ** 8, 1, -10000, -10 ** 6, 1, 1], maxfev=20000)
-            elif len(fits[1].data) < 400:
-                best_fit, covariance = curve_fit(wdpt, (xl.flatten() - cor, wl.flatten()), yl.flatten() - cor,
-                                                 p0=[10 ** 6, 1, -10000, -10 ** 6, 1, 1], maxfev=20000)
-            else:
-                if x_star.value > 450:
-                    best_fit, covariance = curve_fit(wdpt, (xl.flatten() - cor, wl.flatten()), yl.flatten() - cor,
-                                                     p0=[10 ** 8, 1, -10000, -10 ** 6, 1, 1], maxfev=20000)
-                else:
+                                                 p0=tests[0][1])
+            except RuntimeError:
+                if len(fits[1].data) < 200:
                     best_fit, covariance = curve_fit(wdpt, (xl.flatten() - cor, wl.flatten()), yl.flatten() - cor,
                                                      p0=[-10 ** 8, 1, -10000, -10 ** 6, 1, 1], maxfev=20000)
+                elif len(fits[1].data) < 400:
+                    best_fit, covariance = curve_fit(wdpt, (xl.flatten() - cor, wl.flatten()), yl.flatten() - cor,
+                                                     p0=[10 ** 6, 1, -10000, -10 ** 6, 1, 1], maxfev=20000)
+                else:
+                    if x_star.value > 450:
+                        best_fit, covariance = curve_fit(wdpt, (xl.flatten() - cor, wl.flatten()), yl.flatten() - cor,
+                                                         p0=[10 ** 8, 1, -10000, -10 ** 6, 1, 1], maxfev=20000)
+                    else:
+                        best_fit, covariance = curve_fit(wdpt, (xl.flatten() - cor, wl.flatten()), yl.flatten() - cor,
+                                                         p0=[-10 ** 8, 1, -10000, -10 ** 6, 1, 1], maxfev=20000)
 
             wdpt_constant_coefficient_1.to_fits(fits, value=best_fit[0])
             wdpt_constant_coefficient_2.to_fits(fits, value=best_fit[1])
@@ -762,7 +803,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             margin1 = max(first_spectrum_bottom.value - 20, 6)
             margin2 = min(first_spectrum_top.value + 20, len(fits[1].data) - 6)
             best_fit, covariance = curve_fit(fit_yshift, testx[margin1:margin2], testy[margin1:margin2],
-                                             p0=[spectrum_bottom.value -
+                                             p0=[-spectrum_bottom.value +
                                                  comparisons[comparison_name]['spectrum_bottom'],
                                              np.median(testy[margin1:margin2] / interp_y(testx[margin1:margin2]))])
 

@@ -1,3 +1,22 @@
+"""
+images3_photometry.py
+
+Includes all the functions that perform photometry processes.
+All the functions take as input either an HDUList object or a DataSet object, as defined in the basics.py file and
+return the input object and a dictionary that contains the extracted light-curves. In all cases, the default values for
+the input parameters are the values in the respective pipeline.variables object. Note that the parameters for the
+supporting functions do not have default values, as their purpose is to be used only in this particular file.
+
+Functions included:
+photometry:         ...
+split_photometry:   ...
+
+Supporting functions included:
+get_flux_integral:  ...
+get_flux_gauss:     ...
+
+"""
+
 from basics import *
 
 
@@ -357,27 +376,26 @@ def get_flux_gauss(fits, lower_wavelength, upper_wavelength,
     return flux, error, ph_error
 
 
-def photometry(input_data,
-               white_lower_wavelength=None, white_upper_wavelength=None,
-               aperture_lower_extend=None, aperture_upper_extend=None,
-               bins_lower_wavelength=None, bins_upper_wavelength=None,
-               extraction_method=None, extraction_gauss_sigma=None, plot=False):
+def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=None, bins_file=None,
+               aperture_lower_extend=None, aperture_upper_extend=None, extraction_method=None,
+               extraction_gauss_sigma=None, plot=False):
 
     # load pipeline and calibration variables to be used
 
     white_lower_wavelength = pipeline_variables.white_lower_wavelength.custom(white_lower_wavelength)
     white_upper_wavelength = pipeline_variables.white_upper_wavelength.custom(white_upper_wavelength)
+    bins_file = pipeline_variables.bins_file.custom(bins_file)
     aperture_lower_extend = pipeline_variables.aperture_lower_extend.custom(aperture_lower_extend)
     aperture_upper_extend = pipeline_variables.aperture_upper_extend.custom(aperture_upper_extend)
-    bins_lower_wavelength = pipeline_variables.bins_lower_wavelength.custom(bins_lower_wavelength)
-    bins_upper_wavelength = pipeline_variables.bins_upper_wavelength.custom(bins_upper_wavelength)
     extraction_method = pipeline_variables.extraction_method.custom(extraction_method)
     extraction_gauss_sigma = pipeline_variables.extraction_gauss_sigma.custom(extraction_gauss_sigma)
+
     ra_target = pipeline_variables.ra_target.custom()
     dec_target = pipeline_variables.dec_target.custom()
     subarray_size = pipeline_variables.sub_array_size.custom()
     grism = pipeline_variables.grism.custom()
     exposure_time = pipeline_variables.exposure_time.custom()
+    bins_number = pipeline_variables.bins_number.custom()
     heliocentric_julian_date = pipeline_variables.heliocentric_julian_date.custom()
     spectrum_direction = pipeline_variables.spectrum_direction.custom()
     sky_background_level = pipeline_variables.sky_background_level.custom()
@@ -396,20 +414,23 @@ def photometry(input_data,
     y_shift_error_array = pipeline_variables.y_shift_error_array.custom()
     scan_length_array = pipeline_variables.scan_length_array.custom()
     scan_length_error_array = pipeline_variables.scan_length_error_array.custom()
+    white_ldc1 = pipeline_variables.white_ldc1.custom()
+    white_ldc2 = pipeline_variables.white_ldc2.custom()
+    white_ldc3 = pipeline_variables.white_ldc3.custom()
+    white_ldc4 = pipeline_variables.white_ldc4.custom()
 
     lower_wavelength = pipeline_variables.lower_wavelength.custom()
     upper_wavelength = pipeline_variables.upper_wavelength.custom()
     flux_array = pipeline_variables.flux_array.custom()
     error_array = pipeline_variables.error_array.custom()
     ph_error_array = pipeline_variables.ph_error_array.custom()
-    white_dictionary = pipeline_variables.white_dictionary.custom()
-    bins_dictionaries = [ff.custom() for ff in pipeline_variables.bins_dictionaries]
-    for i, j in enumerate([white_dictionary] + bins_dictionaries):
-        flux_array.to_dictionary(j)
-        error_array.to_dictionary(j)
-        ph_error_array.to_dictionary(j)
-        lower_wavelength.to_dictionary(j, value=([white_lower_wavelength.value] + list(bins_lower_wavelength.value))[i])
-        upper_wavelength.to_dictionary(j, value=([white_upper_wavelength.value] + list(bins_upper_wavelength.value))[i])
+
+    # set bins
+
+    white_dictionary, bins_dictionaries = \
+        pipeline_variables.set_binning(input_data, white_lower_wavelength.value, white_upper_wavelength.value,
+                                       white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
+                                       bins_file.value)
 
     # select extraction method
 
@@ -481,6 +502,9 @@ def photometry(input_data,
         scan_length_error.from_fits(fits)
         scan_length_error_array.set(np.append(scan_length_error_array.value, scan_length_error.value))
 
+        bins_number.set(len(bins_dictionaries))
+        bins_number.to_dictionary(light_curve)
+
         for i in [white_dictionary] + bins_dictionaries:
             lower_wavelength.from_dictionary(i)
             upper_wavelength.from_dictionary(i)
@@ -503,7 +527,10 @@ def photometry(input_data,
             plt.xlim(0, len(fits[1].data))
             plt.ylim(0, len(fits[1].data))
 
-            used_extraction_method(fits, white_lower_wavelength.value, white_upper_wavelength.value,
+            lower_wavelength.from_dictionary(white_dictionary)
+            upper_wavelength.from_dictionary(white_dictionary)
+
+            used_extraction_method(fits, lower_wavelength.value, upper_wavelength.value,
                                    aperture_lower_extend.value, aperture_upper_extend.value,
                                    extraction_gauss_sigma.value, plot=True)
 
@@ -513,6 +540,8 @@ def photometry(input_data,
             plt.figure(2)
 
             plot_bins = np.arange(10000, 18000, 50)
+            if grism.value == 'G102':
+                plot_bins = np.arange(6000, 13000, 50)
             plot_spectrum = np.array([used_extraction_method(fits, ff, ff + 50, aperture_lower_extend.value,
                                                              aperture_upper_extend.value,
                                                              extraction_gauss_sigma.value)[0]
@@ -535,48 +564,52 @@ def photometry(input_data,
         return input_data, light_curve
 
 
-def split_photometry(input_data,
-                     white_lower_wavelength=None, white_upper_wavelength=None,
-                     aperture_lower_extend=None, aperture_upper_extend=None,
-                     bins_lower_wavelength=None, bins_upper_wavelength=None,
-                     extraction_method=None, extraction_gauss_sigma=None, plot=False):
+def split_photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=None, bins_file=None,
+               aperture_lower_extend=None, aperture_upper_extend=None, extraction_method=None,
+               extraction_gauss_sigma=None, plot=False):
+
+    # load pipeline and calibration variables to be used
 
     white_lower_wavelength = pipeline_variables.white_lower_wavelength.custom(white_lower_wavelength)
     white_upper_wavelength = pipeline_variables.white_upper_wavelength.custom(white_upper_wavelength)
+    bins_file = pipeline_variables.bins_file.custom(bins_file)
     aperture_lower_extend = pipeline_variables.aperture_lower_extend.custom(aperture_lower_extend)
     aperture_upper_extend = pipeline_variables.aperture_upper_extend.custom(aperture_upper_extend)
-    bins_lower_wavelength = pipeline_variables.bins_lower_wavelength.custom(bins_lower_wavelength)
-    bins_upper_wavelength = pipeline_variables.bins_upper_wavelength.custom(bins_upper_wavelength)
     extraction_method = pipeline_variables.extraction_method.custom(extraction_method)
     extraction_gauss_sigma = pipeline_variables.extraction_gauss_sigma.custom(extraction_gauss_sigma)
+
     ra_target = pipeline_variables.ra_target.custom()
     dec_target = pipeline_variables.dec_target.custom()
     subarray_size = pipeline_variables.sub_array_size.custom()
     grism = pipeline_variables.grism.custom()
     exposure_time = pipeline_variables.exposure_time.custom()
+    bins_number = pipeline_variables.bins_number.custom()
     heliocentric_julian_date_array = pipeline_variables.heliocentric_julian_date_array.custom()
     spectrum_direction_array = pipeline_variables.spectrum_direction_array.custom()
     sky_background_level_array = pipeline_variables.sky_background_level_array.custom()
-    y_star_array = pipeline_variables.y_star_array.custom()
-    y_shift_error_array = pipeline_variables.y_shift_error_array.custom()
     x_star_array = pipeline_variables.x_star_array.custom()
     x_shift_error_array = pipeline_variables.x_shift_error_array.custom()
+    y_star_array = pipeline_variables.y_star_array.custom()
+    y_shift_error_array = pipeline_variables.y_shift_error_array.custom()
     scan_length_array = pipeline_variables.scan_length_array.custom()
     scan_length_error_array = pipeline_variables.scan_length_error_array.custom()
+    white_ldc1 = pipeline_variables.white_ldc1.custom()
+    white_ldc2 = pipeline_variables.white_ldc2.custom()
+    white_ldc3 = pipeline_variables.white_ldc3.custom()
+    white_ldc4 = pipeline_variables.white_ldc4.custom()
 
     lower_wavelength = pipeline_variables.lower_wavelength.custom()
     upper_wavelength = pipeline_variables.upper_wavelength.custom()
     flux_array = pipeline_variables.flux_array.custom()
     error_array = pipeline_variables.error_array.custom()
     ph_error_array = pipeline_variables.ph_error_array.custom()
-    white_dictionary = pipeline_variables.white_dictionary.custom()
-    bins_dictionaries = [ff.custom() for ff in pipeline_variables.bins_dictionaries]
-    for i, j in enumerate([white_dictionary] + bins_dictionaries):
-        flux_array.to_dictionary(j)
-        error_array.to_dictionary(j)
-        ph_error_array.to_dictionary(j)
-        lower_wavelength.to_dictionary(j, value=([white_lower_wavelength.value] + list(bins_lower_wavelength.value))[i])
-        upper_wavelength.to_dictionary(j, value=([white_upper_wavelength.value] + list(bins_upper_wavelength.value))[i])
+
+    # set bins
+
+    white_dictionary, bins_dictionaries = \
+        pipeline_variables.set_binning(input_data, white_lower_wavelength.value, white_upper_wavelength.value,
+                                       white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
+                                       bins_file.value)
 
     # iterate over the splitted data sub-sets
 
@@ -593,8 +626,7 @@ def split_photometry(input_data,
                        white_upper_wavelength=white_upper_wavelength.value,
                        aperture_lower_extend=aperture_lower_extend.value,
                        aperture_upper_extend=aperture_upper_extend.value,
-                       bins_lower_wavelength=bins_lower_wavelength.value,
-                       bins_upper_wavelength=bins_upper_wavelength.value,
+                       bins_file=bins_file.value,
                        extraction_method=extraction_method.value,
                        extraction_gauss_sigma=extraction_gauss_sigma.value,
                        plot=False)[1]
@@ -620,12 +652,17 @@ def split_photometry(input_data,
             plt.xlim(0, len(fits[1].data))
             plt.ylim(0, len(fits[1].data))
 
-            used_extraction_method(fits, white_lower_wavelength.value, white_upper_wavelength.value,
+            lower_wavelength.from_dictionary(white_dictionary)
+            upper_wavelength.from_dictionary(white_dictionary)
+
+            used_extraction_method(fits, lower_wavelength.value, upper_wavelength.value,
                                    aperture_lower_extend.value, aperture_upper_extend.value,
                                    extraction_gauss_sigma.value, plot=True)
 
             plt.figure(2)
             testx = np.arange(10000, 18000, 50)
+            if grism.value == 'G102':
+                testx = np.arange(6000, 13000, 50)
             testy = np.array([used_extraction_method(fits, ff, ff + 50, aperture_lower_extend.value,
                                                      aperture_upper_extend.value, extraction_gauss_sigma.value)[0]
                               for ff in testx])
@@ -661,6 +698,9 @@ def split_photometry(input_data,
 
             exposure_time.from_dictionary(light_curve)
             exposure_time.to_dictionary(final_light_curve)
+
+            bins_number.from_dictionary(light_curve)
+            bins_number.to_dictionary(final_light_curve)
 
             aperture_lower_extend.from_dictionary(light_curve)
             aperture_lower_extend.to_dictionary(final_light_curve)

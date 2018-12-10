@@ -1,3 +1,19 @@
+"""
+File: images1_reduction.py
+Author: Angelos Tsiaras
+E-mail: angelos.tsiaras.14@ucl.ac.uk
+Contents: functions that perform reduction processes
+    timing:     Heliocentric julian date calculation.
+    bias:       Bias drifts and zero-read corrections.
+    linearity:
+    dark:
+    gain:       Gain variations correction and DN to electrons conversion.
+    sky:
+    flat:
+    bpcr:
+
+"""
+
 from basics import *
 
 
@@ -596,6 +612,7 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
     # load pipeline and calibration variables to be used
 
     sky_detection_limit = pipeline_variables.sky_detection_limit.custom(sky_detection_limit)
+
     sky_background_level = pipeline_variables.sky_background_level.custom()
     sky_frame = pipeline_variables.sky_area.custom()
 
@@ -836,6 +853,7 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
     cr_neighbours = pipeline_variables.cr_neighbours.custom(cr_neighbours)
     cr_detection_limit = pipeline_variables.cr_detection_limit.custom(cr_detection_limit)
     use_bpcr_fast_mode = pipeline_variables.use_bpcr_fast_mode.custom(use_bpcr_fast_mode)
+
     bpcr_map = pipeline_variables.bpcr_map.custom()
 
     bad_pixels = calibration_variables.bad_pixels.match(input_data)
@@ -859,10 +877,10 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
             y_flag = []
 
             for i in range(1, 1 + int(cr_neighbours.value) / 2):
-                x_flag.append(np.abs(frame - np.roll(frame, i, 1)))
-                x_flag.append(np.abs(frame - np.roll(frame, -i, 1)))
-                y_flag.append(np.abs(frame - np.roll(frame, i, 0)))
-                y_flag.append(np.abs(frame - np.roll(frame, -i, 0)))
+                x_flag.append(frame - np.roll(frame, i, 1))
+                x_flag.append(frame - np.roll(frame, -i, 1))
+                y_flag.append(frame - np.roll(frame, i, 0))
+                y_flag.append(frame - np.roll(frame, -i, 0))
 
             x_flag = np.median(x_flag, 0)
             y_flag = np.median(y_flag, 0)
@@ -887,6 +905,29 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
             cr_test = np.where((x_flag > x_detection_limit) & (y_flag > y_detection_limit), 1, 0)
             cr_test = np.where(cr_test == 1)
 
+            # local_x_flag = []
+            # local_y_flag = []
+            #
+            # for i in range(1, 1 + int(cr_neighbours.value) / 2):
+            #     local_x_flag.append(np.roll(x_flag, i, 0))
+            #     local_x_flag.append(np.roll(x_flag, -i, 0))
+            #     local_y_flag.append(np.roll(y_flag, i, 1))
+            #     local_y_flag.append(np.roll(y_flag, -i, 1))
+            #
+            # median_x_flag = np.median(local_x_flag, 0)
+            # median_y_flag = np.median(local_y_flag, 0)
+            #
+            # med_x_flag = np.median(np.abs(local_x_flag - median_x_flag), 0)
+            # med_y_flag = np.median(np.abs(local_y_flag - median_y_flag), 0)
+            #
+            # x_detection_limit = cr_detection_limit.value * med_x_flag
+            # y_detection_limit = cr_detection_limit.value * med_y_flag
+            #
+            # # characterise as cosmic rays only the pixes which have both their flags above the respective detection limit
+            #
+            # cr_test = np.where((np.abs(x_flag - median_x_flag) > x_detection_limit) & (np.abs(y_flag - median_y_flag) > y_detection_limit), 1, 0)
+            # cr_test = np.where(cr_test == 1)
+
             # in the the bad pixels table the bad pixels are characterised by the number -1
             # characterise the cosmic rays by the number 1
             # and save the final bad pixels and cosmic rays map it in the fts file
@@ -904,6 +945,28 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
         else:
 
             bpcr_map.from_fits(fits)
+
+        # scan or no scan
+
+        data = np.sum(fits[1].data, 0)
+        model = tools.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
+        dx = np.argmax(np.convolve(data, model)) - np.argmax(np.convolve(model, model))
+        x_lim1, x_lim2 = len(data) / 2 + dx - 55, len(data) / 2 + dx + 55
+
+        # detect the approximate vertical position of the final spectrum
+
+        data = fits[1].data
+        y1 = 5 + np.median(np.argmax(data[5:, x_lim1:x_lim2] - data[:-5, x_lim1:x_lim2], 0))
+        y2 = np.median(np.argmin(data[5:, x_lim1:x_lim2] - data[:-5, x_lim1:x_lim2], 0))
+        if abs(y2 - y1) <= 1:
+            y1 = 2 + np.median(np.argmax(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0))
+            y2 = np.median(np.argmin(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0))
+        final_y_lim1, final_y_lim2 = np.sort([int(round(y1)), int(round(y2))])
+
+        if abs(final_y_lim1 - final_y_lim2) > 1:
+            final_scan = True
+        else:
+            final_scan = False
 
         # correct each read for the bad pixels and the cosmic rays
 
@@ -923,20 +986,32 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
             science_old = np.array(fits[i].data, dtype=float)
             error = np.array(fits[j].data, dtype=float)
 
-            # find the clean pixels location and values
+            if final_scan:
 
-            grid_x, grid_y = np.meshgrid(np.arange(len(science)), np.arange(len(science[0])))
-            clean_pixs = np.where(bpcr_map.value == 0)
-            points = np.swapaxes(np.roll(clean_pixs, 1, 0), 0, 1)
-            values = fits[i].data[clean_pixs].flatten()
+                # find the clean pixels location and values
 
-            # replace the frame with the interpolated values
-            # after this process the clean pixels remain the same
-            # and the bad pixels and cosmic rays are replaced
+                grid_x, grid_y = np.meshgrid(np.arange(len(science)), np.arange(len(science[0])))
+                clean_pixs = np.where(bpcr_map.value == 0)
+                points = np.swapaxes(np.roll(clean_pixs, 1, 0), 0, 1)
+                values = fits[i].data[clean_pixs].flatten()
 
-            # TODO: this function is slow, try and write a faster process using np.arrays
+                # replace the frame with the interpolated values
+                # after this process the clean pixels remain the same
+                # and the bad pixels and cosmic rays are replaced
 
-            science = griddata(points, values, (grid_x, grid_y), method='cubic')
+                # TODO: this function is slow, try and write a faster process using np.arrays
+
+                science = griddata(points, values, (grid_x, grid_y), method='cubic')
+
+            else:
+                bpcr_map.value[:, 0] = 0
+                bpcr_map.value[:, -1] = 0
+                for fits_line in range(len(fits[i].data)):
+                    clean_pixs = np.where(bpcr_map.value[fits_line] == 0)
+                    points = clean_pixs[0]
+                    values = fits[i].data[fits_line][clean_pixs]
+                    line_model = interp1d(points, values)
+                    science[fits_line] = line_model(np.arange(len(science[fits_line])))
 
             # propagate the uncertainties in the error array assuming that the difference between
             # the original the final values is and additive correction
