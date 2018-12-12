@@ -1810,25 +1810,32 @@ def plot_fitting(dictionary, directory):
         functions.save_figure(directory, name=export_file)
         plt.close('all')
 
-    print('1')
     plot_diagnostics(dictionary['lightcurves'], 'diagnostics')
-    print('2')
     plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
-    print('3')
     plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
-    print('4')
     plot_fitting_i(dictionary['lightcurves'], 'white', 'white_fitting')
-    print('5')
     plot_fitting_all(dictionary['lightcurves'], 'all_fitting')
-    print('6')
-    plot_spectral_results(dictionary['lightcurves'], 'spectral_results')
+
+    # noinspection PyBroadException
+    try:
+        plot_spectral_results(dictionary['lightcurves'], 'spectral_results')
+    except:
+        pass
 
     try:
         plot_correlations(dictionary['lightcurves'], 'bin_10', 'bin_correlations')
     except KeyError:
-        plot_correlations(dictionary['lightcurves'], 'bin_01', 'bin_correlations')
+        # noinspection PyBroadException
+        try:
+            plot_correlations(dictionary['lightcurves'], 'bin_01', 'bin_correlations')
+        except:
+            pass
 
     try:
         plot_fitting_i(dictionary['lightcurves'], 'bin_10', 'bin_fitting')
     except KeyError:
-        plot_fitting_i(dictionary['lightcurves'], 'bin_01', 'bin_fitting')
+        # noinspection PyBroadException
+        try:
+            plot_fitting_i(dictionary['lightcurves'], 'bin_01', 'bin_fitting')
+        except:
+            pass

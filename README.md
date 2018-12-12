@@ -130,7 +130,7 @@ extraction aperture)
 
 `white_lower_wavelength` **`10880`**  
 `white_upper_wavelength` **`16800`**  
-(number/default) Right and left edges of the extracted white light curve, in Angstrom.
+(number/default) Right and left edges of the extracted white light curve, in Angstroms.
 
 `white_ldc1` **`0.850033`**  
 (number/default) First limb-darkening coefficients for the white light-curve.
@@ -270,7 +270,7 @@ light-curve.
 #### Setting up a bins file
 
 A bins file is a simple txt file that contains three to six columns, indicating for each spectral light curve: 
-a-b. Right and left edges of the extracted spectral light curve, in Angstrom, c-f. limb-darkening coefficients for 
+a-b. Right and left edges of the extracted spectral light curve, in Angstroms, c-f. limb-darkening coefficients for 
 the spectral light-curve. Below, you can find the description of such a file (this file is included in the examples).
 
 `11108 11416 0.985047 -1.385670 1.781030 -0.7267230`  
@@ -300,6 +300,166 @@ of HATP-26 b from the observing proposal 14260 (PI: Deming Drake).
 
 
 ## Products
+
+The final product is a pickle file named "fitting_results.pickle" and can be found in the "results" directory 
+(or the output_directory_copy that you have set in the parameters file. To open the pickle file you will need python 
+installed in your computer and the packages pickle and numpy.
+
+The command to load a pickle file is: `database = pickle.load(open(‘database_file.pickle’))`
+
+This dictionary contains the three main dictionaries that include all the results for a particular dataset. These are:
+
+`database['lightcurves']` extracted light-curves and transit fitting data  
+`database['spectrum']` planetary spectrum  
+
+The `database['lightcurves']` dictionary contains all the information on the extracted white and spectral 
+light-curves and their fitting, and has the following content:
+
+`database['lightcurves']['white']` white light curve and fitting  
+`database['lightcurves']['bin_01']` first wavelength channel  
+`database['lightcurves']['bin_02']` second wavelength channel  
+etc... 
+
+The `database['spectra']` dictionary contains the final extracted planetary spectrum, and has the following structure:
+
+`database['spectrum']['wavelength']` mean wavelength of the different channels (μm)  
+`database['spectrum']['width']` wavelength width of the different channels (μm)  
+`database['spectrum']['depth']` transit depth in each wavelength channel  
+`database['spectrum']['error']` uncertainty in the transit depth in each wavelength channel  
+
+#### White light curve and fitting
+
+The `database['lightcurves']['white']` dictionary has the following structure:
+
+`database['lightcurves']['white']['limb_darkening']['method']` limb darkening method used  
+`database['lightcurves']['white']['wavelength']['lambda1']` lower wavelength limit of the band in Angstroms  
+`database['lightcurves']['white']['wavelength']['lambda2']` upper wavelength limit of the band in Angstroms  
+`database['lightcurves']['white']['wavelength']['lambda_mean']` mean wavelength of the band in Angstroms  
+`database['lightcurves']['white']['wavelength']['lambda_width']` width of the band in Angstroms  
+`database['lightcurves']['white']['exposure']['exp_time']` exposure time for each data point in seconds  
+`database['lightcurves']['white']['exposure']['model_resolution']` sub-exposure time used to model each data point in seconds  
+`database['lightcurves']['white']['input_time_series']['x_shift']` horizontal shifts during the observation  
+`database['lightcurves']['white']['input_time_series']['x_shift_error']` uncertainty in the horizontal shifts during the observation  
+`database['lightcurves']['white']['input_time_series']['y_shift']` vertical shifts during the observation  
+`database['lightcurves']['white']['input_time_series']['y_shift_error']` uncertainty in the horizontal shifts during the observation  
+`database['lightcurves']['white']['input_time_series']['sky']` sky background level during the observation  
+`database['lightcurves']['white']['input_time_series']['scan']` scan direction (1 for forward scans, -1 for reverse scans)  
+`database['lightcurves']['white']['input_time_series']['hjd']` heliocentric Julian date during the observation  
+`database['lightcurves']['white']['input_time_series']['raw_lc']` raw white light-curve  
+`database['lightcurves']['white']['input_time_series']['raw_lc_error']` uncertainty in the raw white light-curve  
+`database['lightcurves']['white']['output_time_series']['phase']` orbital phase  
+`database['lightcurves']['white']['output_time_series']['systematics']` best-fit model for the systematics  
+`database['lightcurves']['white']['output_time_series']['detrended_lc']` de-trended white light-curve  
+`database['lightcurves']['white']['output_time_series']['transit']` best-fit model for the transit  
+`database['lightcurves']['white']['output_time_series']['residuals']` fitting residuals  
+`database['lightcurves']['white']['statistics']['res_std']` standard deviation of the residuals  
+`database['lightcurves']['white']['statistics']['res_autocorr']` autocorrelation function of the residuals  
+`database['lightcurves']['white']['statistics']['corr_variables']` fitted variables  
+`database['lightcurves']['white']['statistics']['corr_matrix']` correlation matric of the fitted variables  
+`database['lightcurves']['white']['parameters']['ldc_1']` first limb-darkening coefficient  
+`database['lightcurves']['white']['parameters']['ldc_2']` second limb-darkening coefficient  
+`database['lightcurves']['white']['parameters']['ldc_3']` third limb-darkening coefficient  
+`database['lightcurves']['white']['parameters']['ldc_4']` forth limb-darkening coefficient  
+`database['lightcurves']['white']['parameters']['rp']` planetary radius relative to the stellar radius  
+`database['lightcurves']['white']['parameters']['fp']` planetary flux relative to the stellar flux (useful only for eclipses)  
+`database['lightcurves']['white']['parameters']['P']` orbital period in days  
+`database['lightcurves']['white']['parameters']['a']` orbital semi-major axis relative to the stellar radius  
+`database['lightcurves']['white']['parameters']['e']` orbital eccentricity  
+`database['lightcurves']['white']['parameters']['i']` orbital inclination in degrees  
+`database['lightcurves']['white']['parameters']['omega']` orbital argument of periastron in degrees  
+`database['lightcurves']['white']['parameters']['t_0']` mit-transit time in HJD  
+`database['lightcurves']['white']['parameters']['n_w_for']` normalization factor for the forward scans  
+`database['lightcurves']['white']['parameters']['n_w_rev']` normalization factor for the reverse scans  
+`database['lightcurves']['white']['parameters']['r_a1']` linear term of the long-term ramp  
+`database['lightcurves']['white']['parameters']['r_a2']` quadratic term of the long-term ramp  
+`database['lightcurves']['white']['parameters']['r_b1']` amplitude of the exponential short-term ramp  
+`database['lightcurves']['white']['parameters']['r_b2']` decay of the exponential short-term ramp  
+`database['lightcurves']['white']['parameters']['for_b1']` amplitude of the exponential short-term ramp for the first orbit  
+`database['lightcurves']['white']['parameters']['for_b2']` amplitude of the exponential short-term ramp for the first orbit  
+`database['lightcurves']['white']['parameters']['mor_b1']` amplitude of the exponential short-term ramp after a buffer dump  
+`database['lightcurves']['white']['parameters']['mor_b2']` amplitude of the exponential short-term ramp after a buffer dump  
+
+Each `database['lightcurves']['white']['parameters']['xx']` element includes also the following keys:
+
+`database['lightcurves']['white']['parameters']['xx']['name']` name  
+`database['lightcurves']['white']['parameters']['xx']['initial']` initial value (None if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['min_allowed']` minimum of the prior (None if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['max_allowed']` maximum of the prior (None if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['trace']` mcmc trace (None if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['trace_bins']` mcmc trace bins (None if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['trace_counts']` mcmc trace distribution (None if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['value']` final value  
+`database['lightcurves']['white']['parameters']['xx']['m_error']` final -error (None if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['p_error']` final +error (None if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['print_name']` name shown in plots  
+`database['lightcurves']['white']['parameters']['xx']['print_value']` value shown in plots  
+`database['lightcurves']['white']['parameters']['xx']['print_m_error']` -error shown in plots (- if not fitted)  
+`database['lightcurves']['white']['parameters']['xx']['print_p_error']` +error shown in plots (- if not fitted)  
+
+#### Spectral light curves and fitting
+
+Each `database['light_curves']['bin_yy']` dictionary has the following structure:
+
+`database['lightcurves']['bin_yy']['limb_darkening']['method']` limb darkening method used  
+`database['lightcurves']['bin_yy']['wavelength']['lambda1']` lower wavelength limit of the band in Angstroms  
+`database['lightcurves']['bin_yy']['wavelength']['lambda2']` upper wavelength limit of the band in Angstroms  
+`database['lightcurves']['bin_yy']['wavelength']['lambda_mean']` mean wavelength of the band in Angstroms  
+`database['lightcurves']['bin_yy']['wavelength']['lambda_width']` width of the band in Angstroms  
+`database['lightcurves']['bin_yy']['exposure']['exp_time']` exposure time for each data point in seconds  
+`database['lightcurves']['bin_yy']['exposure']['model_resolution']` sub-exposure time used to model each data point in seconds  
+`database['lightcurves']['bin_yy']['input_time_series']['x_shift']` horizontal shifts during the observation  
+`database['lightcurves']['bin_yy']['input_time_series']['x_shift_error']` uncertainty in the horizontal shifts during the observation  
+`database['lightcurves']['bin_yy']['input_time_series']['y_shift']` vertical shifts during the observation  
+`database['lightcurves']['bin_yy']['input_time_series']['y_shift_error']` uncertainty in the horizontal shifts during the observation  
+`database['lightcurves']['bin_yy']['input_time_series']['sky']` sky background level during the observation  
+`database['lightcurves']['bin_yy']['input_time_series']['scan']` scan direction (1 for forward scans, -1 for reverse scans)  
+`database['lightcurves']['bin_yy']['input_time_series']['hjd']` heliocentric Julian date during the observation  
+`database['lightcurves']['bin_yy']['input_time_series']['raw_lc']` raw spectral light-curve  
+`database['lightcurves']['bin_yy']['input_time_series']['white_raw_lc']` raw white light-curve  
+`database['lightcurves']['bin_yy']['input_time_series']['relative_lc']` relative spectral light-curve (raw relative spectral light-curve divided by the raw white light-curve)
+`database['lightcurves']['bin_yy']['input_time_series']['relative_lc_error']` uncertainty in the relative spectral light-curve
+`database['lightcurves']['bin_yy']['input_time_series']['white_model']` transit model for the white light-curve  
+`database['lightcurves']['bin_yy']['output_time_series']['phase']` orbital phase  
+`database['lightcurves']['bin_yy']['output_time_series']['systematics']` best-fit model for the systematics  
+`database['lightcurves']['bin_yy']['output_time_series']['detrended_lc']` de-trended white light-curve  
+`database['lightcurves']['bin_yy']['output_time_series']['transit']` best-fit model for the transit  
+`database['lightcurves']['bin_yy']['output_time_series']['residuals']` fitting residuals  
+`database['lightcurves']['bin_yy']['statistics']['res_std']` standard deviation of the residuals  
+`database['lightcurves']['bin_yy']['statistics']['res_autocorr']` autocorrelation function of the residuals  
+`database['lightcurves']['bin_yy']['statistics']['corr_variables']` fitted variables  
+`database['lightcurves']['bin_yy']['statistics']['corr_matrix']` correlation matric of the fitted variables  
+`database['lightcurves']['bin_yy']['parameters']['ldc_1']` first limb-darkening coefficient  
+`database['lightcurves']['bin_yy']['parameters']['ldc_2']` second limb-darkening coefficient  
+`database['lightcurves']['bin_yy']['parameters']['ldc_3']` third limb-darkening coefficient  
+`database['lightcurves']['bin_yy']['parameters']['ldc_4']` forth limb-darkening coefficient  
+`database['lightcurves']['bin_yy']['parameters']['rp']` planetary radius relative to the stellar radius  
+`database['lightcurves']['bin_yy']['parameters']['fp']` planetary flux relative to the stellar flux (useful only for eclipses)  
+`database['lightcurves']['bin_yy']['parameters']['P']` orbital period in days  
+`database['lightcurves']['bin_yy']['parameters']['a']` orbital semi-major axis relative to the stellar radius  
+`database['lightcurves']['bin_yy']['parameters']['e']` orbital eccentricity  
+`database['lightcurves']['bin_yy']['parameters']['i']` orbital inclination in degrees  
+`database['lightcurves']['bin_yy']['parameters']['omega']` orbital argument of periastron in degrees  
+`database['lightcurves']['bin_yy']['parameters']['t_0']` mit-transit time in HJD  
+`database['lightcurves']['bin_yy']['parameters']['n_l_for']` normalization factor for the forward scans  
+`database['lightcurves']['bin_yy']['parameters']['n_l_rev']` normalization factor for the reverse scans  
+`database['lightcurves']['bin_yy']['parameters']['r_a1']` linear term of the long-term ramp   
+
+Each `database['lightcurves']['bin_yy']['parameters']['zz']` element includes also the following keys:
+
+`database['lightcurves']['bin_yy']['parameters']['zz']['name']` name  
+`database['lightcurves']['bin_yy']['parameters']['zz']['initial']` initial value (None if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['min_allowed']` minimum of the prior (None if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['max_allowed']` maximum of the prior (None if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['trace']` mcmc trace (None if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['trace_bins']` mcmc trace bins (None if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['trace_counts']` mcmc trace distribution (None if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['value']` final value  
+`database['lightcurves']['bin_yy']['parameters']['zz']['m_error']` final -error (None if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['p_error']` final +error (None if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['print_name']` name shown in plots  
+`database['lightcurves']['bin_yy']['parameters']['zz']['print_value']` value shown in plots  
+`database['lightcurves']['bin_yy']['parameters']['zz']['print_m_error']` -error shown in plots (- if not fitted)  
+`database['lightcurves']['bin_yy']['parameters']['zz']['print_p_error']` +error shown in plots (- if not fitted)  
 
 
 ## BUGS!!!

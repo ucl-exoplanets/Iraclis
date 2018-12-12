@@ -38,7 +38,7 @@ class DataSet:
         elif isinstance(input_data, str) and os.path.isfile(input_data):
 
             self.file_names = [input_data]
-            self.spectroscopic_images = [pf.open(input_data, memmap=False)]
+            self.spectroscopic_images = [pf.open(input_data)]
             self.direct_image = []
             self.splitted = False
             self._data_set_directory_path = None
@@ -53,15 +53,15 @@ class DataSet:
             final_list = []
             direct_image = False
 
-            files = glob.glob(os.path.join(input_data, '*.fits'))
+            files = sorted(glob.glob(os.path.join(input_data, '*.fits')))
             for i in files:
-                j = pf.open(i, memmap=False)
-                if j[0].header[variables.observation_type.keyword] == 'SPECTROSCOPIC':
-                    final_list.append([j[0].header[variables.exposure_start.keyword],
-                                       os.path.split(i)[1], j])
-                    nsamp.append(j[0].header[variables.total_samples.keyword])
-                elif not direct_image:
-                    direct_image = pf.open(i, memmap=False)
+                with pf.open(i) as j:
+                    if j[0].header[variables.observation_type.keyword] == 'SPECTROSCOPIC':
+                        final_list.append([j[0].header[variables.exposure_start.keyword],
+                                           os.path.split(i)[1], functions.fits_like(j)])
+                        nsamp.append(j[0].header[variables.total_samples.keyword])
+                    elif not direct_image:
+                        direct_image = pf.open(i, mode='update')
 
             nsamps = [int(np.median(np.array(nsamp)))]
 
@@ -93,21 +93,21 @@ class DataSet:
             self.splitted = True
             self._data_set_directory_path = input_data
 
-            for input_data in glob.glob(os.path.join(input_data, '*', '')):
+            for input_data in sorted(glob.glob(os.path.join(input_data, '*', ''))):
 
                 nsamp = []
                 final_list = []
                 direct_image = False
 
-                files = glob.glob(os.path.join(input_data, '*.fits'))
+                files = sorted(glob.glob(os.path.join(input_data, '*.fits')))
                 for i in files:
-                    j = pf.open(i, memmap=False)
-                    if j[0].header[variables.observation_type.keyword] == 'SPECTROSCOPIC':
-                        final_list.append([j[0].header[variables.exposure_start.keyword],
-                                           os.path.split(i)[1], j])
-                        nsamp.append(j[0].header[variables.total_samples.keyword])
-                    elif not direct_image:
-                        direct_image = pf.open(i, memmap=False, mode='update')
+                    with pf.open(i) as j:
+                        if j[0].header[variables.observation_type.keyword] == 'SPECTROSCOPIC':
+                            final_list.append([j[0].header[variables.exposure_start.keyword],
+                                               os.path.split(i)[1], functions.fits_like(j)])
+                            nsamp.append(j[0].header[variables.total_samples.keyword])
+                        elif not direct_image:
+                            direct_image = pf.open(i, mode='update')
 
                 nsamps = [int(np.median(np.array(nsamp)))]
 
