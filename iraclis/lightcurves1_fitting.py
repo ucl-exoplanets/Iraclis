@@ -10,7 +10,7 @@ fitting:    ...
 
 """
 
-from basics import *
+from ._3objects import *
 
 
 def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
@@ -28,120 +28,120 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     # set pipeline variables from input keywords
 
-    apply_up_down_stream_correction = pipeline_variables.apply_up_down_stream_correction.custom(
+    apply_up_down_stream_correction = variables.apply_up_down_stream_correction.custom(
         apply_up_down_stream_correction)
-    exclude_initial_orbits = pipeline_variables.exclude_initial_orbits.custom(exclude_initial_orbits)
-    exclude_final_orbits = pipeline_variables.exclude_final_orbits.custom(exclude_final_orbits)
-    exclude_initial_orbit_points = pipeline_variables.exclude_initial_orbit_points.custom(exclude_initial_orbit_points)
-    mcmc_iterations = pipeline_variables.mcmc_iterations.custom(mcmc_iterations)
-    mcmc_walkers = pipeline_variables.mcmc_walkers.custom(mcmc_walkers)
-    mcmc_burned_iterations = pipeline_variables.mcmc_burned_iterations.custom(mcmc_burned_iterations)
-    spectral_mcmc_iterations = pipeline_variables.spectral_mcmc_iterations.custom(spectral_mcmc_iterations)
-    spectral_mcmc_walkers = pipeline_variables.spectral_mcmc_walkers.custom(spectral_mcmc_walkers)
-    spectral_mcmc_burned_iterations = pipeline_variables.spectral_mcmc_burned_iterations.custom(
+    exclude_initial_orbits = variables.exclude_initial_orbits.custom(exclude_initial_orbits)
+    exclude_final_orbits = variables.exclude_final_orbits.custom(exclude_final_orbits)
+    exclude_initial_orbit_points = variables.exclude_initial_orbit_points.custom(exclude_initial_orbit_points)
+    mcmc_iterations = variables.mcmc_iterations.custom(mcmc_iterations)
+    mcmc_walkers = variables.mcmc_walkers.custom(mcmc_walkers)
+    mcmc_burned_iterations = variables.mcmc_burned_iterations.custom(mcmc_burned_iterations)
+    spectral_mcmc_iterations = variables.spectral_mcmc_iterations.custom(spectral_mcmc_iterations)
+    spectral_mcmc_walkers = variables.spectral_mcmc_walkers.custom(spectral_mcmc_walkers)
+    spectral_mcmc_burned_iterations = variables.spectral_mcmc_burned_iterations.custom(
         spectral_mcmc_burned_iterations)
-    first_orbit_ramp = pipeline_variables.first_orbit_ramp.custom(first_orbit_ramp)
-    second_order_ramp = pipeline_variables.second_order_ramp.custom(second_order_ramp)
-    mid_orbit_ramps = pipeline_variables.mid_orbit_ramps.custom(mid_orbit_ramps)
-    planet = pipeline_variables.planet.custom(planet)
-    method = pipeline_variables.method.custom(method)
-    star_teff = pipeline_variables.star_teff.custom(star_teff)
-    star_logg = pipeline_variables.star_logg.custom(star_logg)
-    star_meta = pipeline_variables.star_meta.custom(star_meta)
-    white_ldc1 = pipeline_variables.white_ldc1.custom(white_ldc1)
-    white_ldc2 = pipeline_variables.white_ldc2.custom(white_ldc2)
-    white_ldc3 = pipeline_variables.white_ldc3.custom(white_ldc3)
-    white_ldc4 = pipeline_variables.white_ldc4.custom(white_ldc4)
-    bins_file = pipeline_variables.bins_file.custom(bins_file)
-    fit_ldc1 = pipeline_variables.fit_ldc1.custom(fit_ldc1)
-    fit_ldc2 = pipeline_variables.fit_ldc2.custom(fit_ldc2)
-    fit_ldc3 = pipeline_variables.fit_ldc3.custom(fit_ldc3)
-    fit_ldc4 = pipeline_variables.fit_ldc4.custom(fit_ldc4)
-    rp_over_rs = pipeline_variables.rp_over_rs.custom(rp_over_rs)
-    fp_over_fs = pipeline_variables.fp_over_fs.custom(fp_over_fs)
-    period = pipeline_variables.period.custom(period)
-    sma_over_rs = pipeline_variables.sma_over_rs.custom(sma_over_rs)
-    fit_sma_over_rs = pipeline_variables.fit_sma_over_rs.custom(fit_sma_over_rs)
-    eccentricity = pipeline_variables.eccentricity.custom(eccentricity)
-    inclination = pipeline_variables.inclination.custom(inclination)
-    fit_inclination = pipeline_variables.fit_inclination.custom(fit_inclination)
-    periastron = pipeline_variables.periastron.custom(periastron)
-    mid_time = pipeline_variables.mid_time.custom(mid_time)
-    fit_mid_time = pipeline_variables.fit_mid_time.custom(fit_mid_time)
+    first_orbit_ramp = variables.first_orbit_ramp.custom(first_orbit_ramp)
+    second_order_ramp = variables.second_order_ramp.custom(second_order_ramp)
+    mid_orbit_ramps = variables.mid_orbit_ramps.custom(mid_orbit_ramps)
+    planet = variables.planet.custom(planet)
+    method = variables.method.custom(method)
+    star_teff = variables.star_teff.custom(star_teff)
+    star_logg = variables.star_logg.custom(star_logg)
+    star_meta = variables.star_meta.custom(star_meta)
+    white_ldc1 = variables.white_ldc1.custom(white_ldc1)
+    white_ldc2 = variables.white_ldc2.custom(white_ldc2)
+    white_ldc3 = variables.white_ldc3.custom(white_ldc3)
+    white_ldc4 = variables.white_ldc4.custom(white_ldc4)
+    bins_file = variables.bins_file.custom(bins_file)
+    fit_ldc1 = variables.fit_ldc1.custom(fit_ldc1)
+    fit_ldc2 = variables.fit_ldc2.custom(fit_ldc2)
+    fit_ldc3 = variables.fit_ldc3.custom(fit_ldc3)
+    fit_ldc4 = variables.fit_ldc4.custom(fit_ldc4)
+    rp_over_rs = variables.rp_over_rs.custom(rp_over_rs)
+    fp_over_fs = variables.fp_over_fs.custom(fp_over_fs)
+    period = variables.period.custom(period)
+    sma_over_rs = variables.sma_over_rs.custom(sma_over_rs)
+    fit_sma_over_rs = variables.fit_sma_over_rs.custom(fit_sma_over_rs)
+    eccentricity = variables.eccentricity.custom(eccentricity)
+    inclination = variables.inclination.custom(inclination)
+    fit_inclination = variables.fit_inclination.custom(fit_inclination)
+    periastron = variables.periastron.custom(periastron)
+    mid_time = variables.mid_time.custom(mid_time)
+    fit_mid_time = variables.fit_mid_time.custom(fit_mid_time)
 
     # load pipeline variables to be used
 
-    ra_target = pipeline_variables.ra_target.custom()
+    ra_target = variables.ra_target.custom()
     ra_target.from_dictionary(light_curve)
 
-    dec_target = pipeline_variables.dec_target.custom()
+    dec_target = variables.dec_target.custom()
     dec_target.from_dictionary(light_curve)
 
-    exposure_time = pipeline_variables.exposure_time.custom()
+    exposure_time = variables.exposure_time.custom()
     exposure_time.from_dictionary(light_curve)
 
-    bins_number = pipeline_variables.bins_number.custom()
+    bins_number = variables.bins_number.custom()
     bins_number.from_dictionary(light_curve)
 
-    subarray_size = pipeline_variables.sub_array_size.custom()
+    subarray_size = variables.sub_array_size.custom()
     subarray_size.from_dictionary(light_curve)
 
-    grism = pipeline_variables.grism.custom()
+    grism = variables.grism.custom()
     grism.from_dictionary(light_curve)
 
-    heliocentric_julian_date_array = pipeline_variables.heliocentric_julian_date_array.custom()
+    heliocentric_julian_date_array = variables.heliocentric_julian_date_array.custom()
     heliocentric_julian_date_array.from_dictionary(light_curve)
 
-    spectrum_direction_array = pipeline_variables.spectrum_direction_array.custom()
+    spectrum_direction_array = variables.spectrum_direction_array.custom()
     spectrum_direction_array.from_dictionary(light_curve)
 
-    sky_background_level_array = pipeline_variables.sky_background_level_array.custom()
+    sky_background_level_array = variables.sky_background_level_array.custom()
     sky_background_level_array.from_dictionary(light_curve)
 
-    star_x_position_array = pipeline_variables.x_star_array.custom()
+    star_x_position_array = variables.x_star_array.custom()
     star_x_position_array.from_dictionary(light_curve)
 
-    x_shift_error_array = pipeline_variables.x_shift_error_array.custom()
+    x_shift_error_array = variables.x_shift_error_array.custom()
     x_shift_error_array.from_dictionary(light_curve)
 
-    star_y_position_array = pipeline_variables.y_star_array.custom()
+    star_y_position_array = variables.y_star_array.custom()
     star_y_position_array.from_dictionary(light_curve)
 
-    y_shift_error_array = pipeline_variables.y_shift_error_array.custom()
+    y_shift_error_array = variables.y_shift_error_array.custom()
     y_shift_error_array.from_dictionary(light_curve)
 
-    scan_length_array = pipeline_variables.scan_length_array.custom()
+    scan_length_array = variables.scan_length_array.custom()
     scan_length_array.from_dictionary(light_curve)
 
-    scan_length_error_array = pipeline_variables.scan_length_error_array.custom()
+    scan_length_error_array = variables.scan_length_error_array.custom()
     scan_length_error_array.from_dictionary(light_curve)
 
-    white_lower_wavelength = pipeline_variables.white_upper_wavelength
-    white_upper_wavelength = pipeline_variables.white_upper_wavelength
+    white_lower_wavelength = variables.white_upper_wavelength
+    white_upper_wavelength = variables.white_upper_wavelength
 
-    flux_array = pipeline_variables.flux_array.custom()
-    error_array = pipeline_variables.error_array.custom()
-    lower_wavelength = pipeline_variables.lower_wavelength.custom()
-    upper_wavelength = pipeline_variables.upper_wavelength.custom()
-    ldc1 = pipeline_variables.ldc1.custom()
-    ldc2 = pipeline_variables.ldc2.custom()
-    ldc3 = pipeline_variables.ldc3.custom()
-    ldc4 = pipeline_variables.ldc4.custom()
+    flux_array = variables.flux_array.custom()
+    error_array = variables.error_array.custom()
+    lower_wavelength = variables.lower_wavelength.custom()
+    upper_wavelength = variables.upper_wavelength.custom()
+    ldc1 = variables.ldc1.custom()
+    ldc2 = variables.ldc2.custom()
+    ldc3 = variables.ldc3.custom()
+    ldc4 = variables.ldc4.custom()
 
     # set bins
 
     white_dictionary, bins_dictionaries = \
-        pipeline_variables.set_binning(light_curve, white_lower_wavelength.value, white_upper_wavelength.value,
-                                       white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
-                                       bins_file.value)
+        variables.set_binning(light_curve, white_lower_wavelength.value, white_upper_wavelength.value,
+                              white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
+                              bins_file.value)
 
     white_dictionary_x, bins_dictionaries_x = \
-        pipeline_variables.set_binning(light_curve, white_lower_wavelength.value, white_upper_wavelength.value,
-                                       white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
-                                       bins_file.value)
+        variables.set_binning(light_curve, white_lower_wavelength.value, white_upper_wavelength.value,
+                              white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
+                              bins_file.value)
 
     if bins_number.value != len(bins_dictionaries):
-        raise PYWFC3FileError('Bin file used does not match the extracted bins.')
+        raise IraclisFileError('Bin file used does not match the extracted bins.')
 
     for i, j in enumerate([white_dictionary] + bins_dictionaries):
         j.from_dictionary(light_curve)
@@ -163,10 +163,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
         if test1 * test2 < 0:
             apply_up_down_stream_correction.set(True)
-            print 'Correcting for up-stream/down-stream effect ... '
+            print('Correcting for up-stream/down-stream effect ... ')
         else:
             apply_up_down_stream_correction.set(False)
-            print 'No correction for up-stream/down-stream effect is needed ... '
+            print('No correction for up-stream/down-stream effect is needed ... ')
 
     if apply_up_down_stream_correction.value:
 
@@ -189,7 +189,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         #         #     l1 = fitfr(begnfr)
         #         #     y1 = begnfr - (1014.0 - 522.0) / 2
         #         #
-        #         #     correction = np.nanmean(((l1[0] / (- (l1[0] - Y + 2 * y1[0]) / ur + e)) / (l1 / (- (l1 - Y + 2 * y1) / ur + e)) - 1.0) / (y1 - y1[0]))
+        #         #     correction = np.nanmean(((l1[0] / (- (l1[0] - Y + 2 * y1[0]) / ur + e)) / (
+        #               l1 / (- (l1 - Y + 2 * y1) / ur + e)) - 1.0) / (y1 - y1[0]))
         #         #     print correction
         #         #     correction = 0.000095
         #
@@ -207,7 +208,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         #
         #             flux_array.from_dictionary(i)
         #             flux = flux_array.value
-        #             # flux[fr] = flux[fr] / ((fitfr(begnfr) / fitfr(begnfr[0])) * (1 + correction * (begnfr - begnfr[0])))
+        #             # flux[fr] = flux[fr] / ((fitfr(begnfr) / fitfr(begnfr[0])) * (
+        #             1 + correction * (begnfr - begnfr[0])))
         #             flux[fr] = flux[fr] / (- (l1 - detector_length + 2 * y1) / ur + e)
         #             # plt.plot(flux, 'o')
         #             # plt.show()
@@ -216,7 +218,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         #
         #             error_array.from_dictionary(i)
         #             error = error_array.value
-        #             # error[fr] = error[fr] / ((fitfr(begnfr) / fitfr(begnfr[0])) * (1 + correction * (begnfr - begnfr[0])))
+        #             # error[fr] = error[fr] / ((fitfr(begnfr) / fitfr(begnfr[0])) * (
+        #             1 + correction * (begnfr - begnfr[0])))
         #             error[fr] = error[fr] / (- (l1 - detector_length + 2 * y1) / ur + e)
         #             error_array.set(error)
         #             error_array.to_dictionary(i)
@@ -251,24 +254,24 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     indices_to_remain = np.arange(len(heliocentric_julian_date_array.value))
 
     if exclude_initial_orbits.value > 0:
-        print 'Excluding {0} orbit{1} from the beginning of the visit ...'\
-            .format(exclude_initial_orbits.value, ['s', ''][1 / exclude_initial_orbits.value])
+        print('Excluding {0} orbit{1} from the beginning of the visit ...'.format(
+            exclude_initial_orbits.value, ['s', ''][1 // exclude_initial_orbits.value]))
         htime = heliocentric_julian_date_array.value
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
 
         indices_to_remain = indices_to_remain[orbits[exclude_initial_orbits.value]:]
 
     if exclude_final_orbits.value > 0:
-        print 'Excluding {0} orbit{1} from the end of the visit ...'\
-            .format(exclude_final_orbits.value, ['s', ''][1 / exclude_final_orbits.value])
+        print('Excluding {0} orbit{1} from the end of the visit ...'.format(
+            exclude_final_orbits.value, ['s', ''][1 // exclude_final_orbits.value]))
         htime = heliocentric_julian_date_array.value[indices_to_remain]
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
 
         indices_to_remain = indices_to_remain[:orbits[-exclude_final_orbits.value]]
 
     if exclude_initial_orbit_points.value > 0:
-        print 'Excluding {0} point{1} from the beginning of each orbit ...'\
-            .format(exclude_initial_orbit_points.value, ['s', ''][1 / exclude_initial_orbit_points.value])
+        print('Excluding {0} point{1} from the beginning of each orbit ...'.format(
+            exclude_initial_orbit_points.value, ['s', ''][1 // exclude_initial_orbit_points.value]))
         htime = heliocentric_julian_date_array.value[indices_to_remain]
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
 
@@ -347,7 +350,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             flux_array.from_dictionary(i)
             lightcurves.append(flux_array.value)
 
-        ica = FastICA(n_components=len(lightcurves), max_iter=1000)
+        ica = FastICA(n_components=len(lightcurves), max_iter=10000)
         components = ica.fit_transform(np.array(lightcurves).T).T
 
         indices_to_remain = []
@@ -357,8 +360,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         indices_to_remain = np.sort(np.unique(np.array(indices_to_remain)))
 
         for i in [heliocentric_julian_date_array, spectrum_direction_array, sky_background_level_array,
-                  star_x_position_array, x_shift_error_array, star_y_position_array, y_shift_error_array, scan_length_array,
-                  scan_length_error_array]:
+                  star_x_position_array, x_shift_error_array, star_y_position_array, y_shift_error_array,
+                  scan_length_array, scan_length_error_array]:
 
             i.set(i.value[indices_to_remain])
             i.to_dictionary(light_curve)
@@ -403,13 +406,12 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         dphase = dphase[indices_to_remain]
         fphase = fphase[indices_to_remain]
 
-
     # match forward and reverse scans
 
     fr = np.where(spectrum_direction_array.value > 0)[0]
     if len(fr) != len(spectrum_direction_array.value):
 
-        print 'Matching forward and revers scans ...'
+        print('Matching forward and revers scans ...')
 
         fr_out = np.where(spectrum_direction_array.value > 0)[0]
         rv_out = np.where(spectrum_direction_array.value < 0)[0]
@@ -456,7 +458,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
         oec_parameters = plc.find_oec_parameters(planet.value, catalogue)
 
-        print 'Some parameters are set to auto, resetting to the OEC values for {0} ...'.format(planet.value)
+        print('Some parameters are set to auto, resetting to the OEC values for {0} ...'.format(planet.value))
 
         if star_logg.value == 'auto':
             star_logg.set(oec_parameters[1])
@@ -557,10 +559,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     if transit_test < eclipse_test:
         observation_type = 'transit'
-        print 'This is a transit observation.'
+        print('This is a transit observation.')
     else:
         observation_type = 'eclipse'
-        print 'This is an eclipse observation.'
+        print('This is an eclipse observation.')
 
     # import series
 
@@ -917,7 +919,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     else:
 
-        print 'Loading previous white fitting results'
+        print('Loading previous white fitting results')
         white_fit = fitted_white_light_curve['lightcurves']['white']
 
     fitting_results['lightcurves']['white'] = white_fit
@@ -1119,7 +1121,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
             def curve_fit_model(xxx, *curve_fit_fitted_parameters):
                 if xxx:
-                    curve_fit_parameters = [ff for ff in initial]
+                    curve_fit_parameters = [fff for fff in initial]
                     for ii in range(len(curve_fit_fitted_parameters_indices)):
                         curve_fit_parameters[curve_fit_fitted_parameters_indices[ii]] = curve_fit_fitted_parameters[ii]
 
@@ -1323,7 +1325,7 @@ def plot_fitting(dictionary, directory):
 
             plt.xticks(plt.xticks()[0], np.ones_like(plt.yticks()[0]))
             plt.yticks(plt.yticks()[0], np.ones_like(plt.yticks()[0]))
-            plt.tick_params(left='off', right='off', top='off', bottom='off', labelbottom='off', labelleft='off')
+            plt.tick_params(left=False, right=False, top=False, bottom=False, labelbottom=False, labelleft=False)
 
             try:
                 digit1 = abs(int(np.log10(errors1[var]))) + 1
@@ -1334,11 +1336,11 @@ def plot_fitting(dictionary, directory):
             except OverflowError:
                 digit2 = 3
             try:
-                done1 = 1 / int(errors1[var] * (10 ** digit1))
+                done1 = 1 // int(errors1[var] * (10 ** digit1))
             except ZeroDivisionError:
                 done1 = 0
             try:
-                done2 = 1 / int(errors2[var] * (10 ** digit2))
+                done2 = 1 // int(errors2[var] * (10 ** digit2))
             except ZeroDivisionError:
                 done2 = 0
 
@@ -1347,11 +1349,12 @@ def plot_fitting(dictionary, directory):
 
             width = max(digit1 + done1, digit2 + done2)
 
-            plt.xlabel(r'${0}$'.format(names[var]) + '\n' +
-                       r'${0:.{width}f}$'.format(round(results[var], width), width=width) + '\n' +
-                       r'$-$' + r'${0:.{width}f}$'.format(round(errors1[var], width), width=width) + '\n' +
-                       r'$+$' + r'${0:.{width}f}$'.format(round(errors2[var], width), width=width), fontsize=15)
-            # plt.xlabel(r'${0}$'.format(names[var]), fontsize=15)
+            plt.xlabel('{0}{1}{2}{3}{4}{5}{6}{7}{8}'.format(
+                r'${0}$'.format(names[var]), '\n',
+                r'${0:.{width}f}$'.format(round(results[var], width), width=width), '\n',
+                r'$-$', r'${0:.{width}f}$'.format(round(errors1[var], width), width=width), '\n',
+                r'$+$', r'${0:.{width}f}$'.format(round(errors2[var], width), width=width)),
+                fontsize=15)
 
             plt.xlim(results[var] - 6 * errors[var], results[var] + 6 * errors[var])
             plt.ylim(0, plt.ylim()[1])
@@ -1363,18 +1366,18 @@ def plot_fitting(dictionary, directory):
 
                 plt.yticks(plt.yticks()[0], np.arange(len(plt.yticks()[0])))
                 plt.xticks(plt.xticks()[0], np.arange(len(plt.xticks()[0])))
-                plt.tick_params(bottom='off', left='off', right='off', top='off', labelbottom='off',
-                                labelleft='off', labelright='off', labeltop='off')
+                plt.tick_params(bottom=False, left=False, right=False, top=False, labelbottom=False,
+                                labelleft=False, labelright=False, labeltop=False)
 
                 plt.xlim(results[j] - 6 * errors[j], results[j] + 6 * errors[j])
                 plt.ylim(results[var] - 6 * errors[var], results[var] + 6 * errors[var])
                 text_x = plt.xlim()[1] - 0.05 * (plt.xlim()[1] - plt.xlim()[0])
                 text_y = plt.ylim()[1] - 0.05 * (plt.ylim()[1] - plt.ylim()[0])
-                plt.text(text_x, text_y, r'$' + str(correlation(traces[j], traces[var])) + '$',
+                plt.text(text_x, text_y, r'{0}{1}{2}'.format('$', str(correlation(traces[j], traces[var])), '$'),
                          color=cmap(abs(correlation(traces[j], traces[var])) / 2.), fontsize=15, ha='right', va='top')
 
         plt.subplots_adjust(hspace=0, wspace=0)
-        save_figure(directory, name=export_file)
+        functions.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_fitting_i(light_curve_dic, bin_to_plot, export_file):
@@ -1397,18 +1400,20 @@ def plot_fitting(dictionary, directory):
 
         plt.subplot(4, 1, 1)
 
-        plt.plot(data_phase[fr], data_full[fr] / np.mean(data_full[fr]),
-                 'o', c=forward_colour_i, mec=forward_colour_i, ms=3)
-        plt.plot(data_phase[rv], data_full[rv] / np.mean(data_full[rv]),
-                 'o', c=reverse_colour_i, mec=reverse_colour_i, ms=3)
+        if len(fr[0]) > 0:
+            plt.plot(data_phase[fr], data_full[fr] / np.mean(data_full[fr]), 'o', c=forward_colour_i,
+                     mec=forward_colour_i, ms=3)
+        if len(rv[0]) > 0:
+            plt.plot(data_phase[rv], data_full[rv] / np.mean(data_full[rv]), 'o', c=reverse_colour_i,
+                     mec=reverse_colour_i, ms=3)
         x_max = max(np.abs(plt.xlim()))
 
-        plt.ylabel(r'$\mathrm{raw}$' + '\n' + r'$\mathrm{norm.} \, \mathrm{flux}$', fontsize=15)
+        plt.ylabel('{0}{1}{2}'.format('$\mathrm{raw}$', '\n', '$\mathrm{norm.} \, \mathrm{flux}$', fontsize=15))
 
         plt.xlim(-x_max, x_max)
 
-        adjust_ticks()
-        plt.tick_params(labelbottom='off')
+        functions.adjust_ticks()
+        plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 2)
 
@@ -1416,12 +1421,12 @@ def plot_fitting(dictionary, directory):
         plt.plot(data_phase[rv], data_curve[rv], 'o', c=reverse_colour_i, mec=reverse_colour_i, ms=3)
         plt.plot(data_phase, model_curve, c='k', ls='--')
 
-        plt.ylabel(r'$\mathrm{de-trended}$' + '\n' + r'$\mathrm{norm.} \, \mathrm{flux}$', fontsize=15)
+        plt.ylabel('{0}{1}{2}'.format('$\mathrm{de-trended}$', '\n', r'$\mathrm{norm.} \, \mathrm{flux}$', fontsize=15))
 
         plt.xlim(-x_max, x_max)
 
-        adjust_ticks()
-        plt.tick_params(labelbottom='off')
+        functions.adjust_ticks()
+        plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 3)
 
@@ -1433,7 +1438,7 @@ def plot_fitting(dictionary, directory):
         plt.xlabel(r'$\mathrm{phase}$', fontsize=15)
 
         plt.xlim(-x_max, x_max)
-        adjust_ticks()
+        functions.adjust_ticks()
 
         plt.subplot(6, 1, 6)
 
@@ -1443,10 +1448,10 @@ def plot_fitting(dictionary, directory):
         plt.ylabel(r'$\mathrm{res.} \ \mathrm{ACF}$', fontsize=15)
 
         plt.ylim(-1.0, 1.0)
-        adjust_ticks()
+        functions.adjust_ticks()
 
         plt.subplots_adjust(hspace=0.0)
-        save_figure(directory, name=export_file)
+        functions.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_fitting_all(light_curve_dic, export_file):
@@ -1454,6 +1459,10 @@ def plot_fitting(dictionary, directory):
         dy = 0
         fig = plt.figure(figsize=(10, 10))
         fig.set_tight_layout(False)
+        ax1 = plt.subplot(1, 4, 1)
+        ax2 = plt.subplot(1, 4, 2)
+        ax3 = plt.subplot(1, 4, 3)
+        ax4 = plt.subplot(1, 4, 4)
 
         cmap = matplotlib.cm.get_cmap('rainbow')
 
@@ -1477,20 +1486,16 @@ def plot_fitting(dictionary, directory):
             if dy == 0:
                 dy = 50. * np.std(bin_lc['output_time_series']['residuals'])
 
-            plt.subplot(1, 4, 1)
-            plt.plot(phase, raw / raw[0] + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
+            ax1.plot(phase, raw / raw[0] + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
 
-            plt.subplot(1, 4, 2)
-            plt.plot(phase, model_curve + ii * dy, c='k', ls='--', lw=0.5)
-            plt.plot(phase, detrended_lc + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
+            ax2.plot(phase, model_curve + ii * dy, c='k', ls='--', lw=0.5)
+            ax2.plot(phase, detrended_lc + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
 
-            plt.subplot(1, 4, 3)
-            plt.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
-            plt.plot(phase, 1 + residuals + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
+            ax3.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
+            ax3.plot(phase, 1 + residuals + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
 
-            plt.subplot(1, 4, 4)
-            plt.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
-            plt.bar(np.arange(len(res_autocorr)), res_autocorr * (0.7 * dy), bottom=1 + ii * dy,
+            ax4.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
+            ax4.bar(np.arange(len(res_autocorr)), res_autocorr * (0.7 * dy), bottom=1 + ii * dy,
                     linewidth=0.3, color=cmap(wavelength_mean))
 
         bin_lc = light_curve_dic['white']
@@ -1502,63 +1507,55 @@ def plot_fitting(dictionary, directory):
         raw = np.array(bin_lc['input_time_series']['raw_lc'])
         res_autocorr = np.array(bin_lc['statistics']['res_autocorr'])
 
-        plt.subplot(1, 4, 1)
-        plt.plot(phase, raw / raw[0] + ii * dy, 'o', c='k', mew=0.1, ms=3)
-        x_max = max(np.abs(plt.xlim()))
-        y_min, y_max = plt.ylim()
+        ax1.plot(phase, raw / raw[0] + ii * dy, 'o', c='k', mew=0.1, ms=3)
+        x_max = max(np.abs(ax1.get_xlim()))
+        y_min, y_max = ax1.get_ylim()
 
-        plt.subplot(1, 4, 2)
-        plt.plot(phase, model_curve + ii * dy, c='k', ls='--', lw=0.5)
-        plt.plot(phase, detrended_lc + ii * dy, 'o', c='k', mew=0.1, ms=3)
+        ax2.plot(phase, model_curve + ii * dy, c='k', ls='--', lw=0.5)
+        ax2.plot(phase, detrended_lc + ii * dy, 'o', c='k', mew=0.1, ms=3)
 
-        plt.subplot(1, 4, 3)
-        plt.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
-        plt.plot(phase, 1 + residuals + ii * dy, 'o', c='k', mew=0.1, ms=3)
+        ax3.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
+        ax3.plot(phase, 1 + residuals + ii * dy, 'o', c='k', mew=0.1, ms=3)
 
-        plt.subplot(1, 4, 4)
-        plt.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
-        plt.bar(np.arange(len(res_autocorr)), res_autocorr * (0.7 * dy), bottom=1 + ii * dy, linewidth=0.3, color='k')
+        ax4.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
+        ax4.bar(np.arange(len(res_autocorr)), res_autocorr * (0.7 * dy), bottom=1 + ii * dy, linewidth=0.3, color='k')
 
-        plt.subplot(1, 4, 1)
-        plt.title(r'$\mathrm{raw}$', fontsize=15)
-        plt.ylabel(r'$\mathrm{norm.} \, \mathrm{flux}$', fontsize=15)
+        ax1.set_title(r'$\mathrm{raw}$', fontsize=15)
+        ax1.set_ylabel(r'$\mathrm{norm.} \, \mathrm{flux}$', fontsize=15)
 
-        plt.xlim(-x_max, x_max)
-        plt.ylim(y_min, y_max)
-        adjust_ticks()
-        plt.xticks(rotation=45, ha='right')
+        ax1.set_xlim(-x_max, x_max)
+        ax1.set_ylim(y_min, y_max)
+        ax1.set_xticklabels(ax1.get_xticks(), rotation=45, ha='right')
+        functions.adjust_ticks_ax(ax1)
 
-        plt.subplot(1, 4, 2)
-        plt.title(r'$\mathrm{de-trended}$', fontsize=15)
-        plt.xlabel(r'$\mathrm{phase}$', fontsize=15)
+        ax2.set_title(r'$\mathrm{de-trended}$', fontsize=15)
+        ax2.set_xlabel(r'$\mathrm{phase}$', fontsize=15)
 
-        plt.xlim(-x_max, x_max)
-        plt.ylim(y_min, y_max)
-        adjust_ticks()
-        plt.xticks(rotation=45, ha='right')
-        plt.tick_params(labelleft='off')
+        ax2.set_xlim(-x_max, x_max)
+        ax2.set_ylim(y_min, y_max)
+        ax2.set_xticklabels(ax2.get_xticks(), rotation=45, ha='right')
+        ax2.tick_params(labelleft=False)
+        functions.adjust_ticks_ax(ax2)
 
-        plt.subplot(1, 4, 3)
-        plt.title(r'$\mathrm{residuals}$', fontsize=15)
+        ax3.set_title(r'$\mathrm{residuals}$', fontsize=15)
 
-        plt.xlim(-x_max, x_max)
-        plt.ylim(y_min, y_max)
-        adjust_ticks()
-        plt.xticks(rotation=45, ha='right')
-        plt.tick_params(labelleft='off')
+        ax3.set_xlim(-x_max, x_max)
+        ax3.set_ylim(y_min, y_max)
+        ax3.set_xticklabels(ax3.get_xticks(), rotation=45, ha='right')
+        ax3.tick_params(labelleft=False)
+        functions.adjust_ticks_ax(ax3)
 
-        plt.subplot(1, 4, 4)
-        plt.title(r'$\mathrm{res.} \ \mathrm{ACF}$', fontsize=15)
-        plt.xlabel(r'$\#$', fontsize=15)
+        ax4.set_title(r'$\mathrm{res.} \ \mathrm{ACF}$', fontsize=15)
+        ax4.set_xlabel(r'$\#$', fontsize=15)
 
-        plt.ylim(y_min, y_max)
-        plt.xlim(-5, plt.xlim()[1])
-        adjust_ticks()
-        plt.xticks(rotation=45, ha='right')
-        plt.tick_params(labelleft='off')
+        ax4.set_ylim(y_min, y_max)
+        ax4.set_xlim(-5, plt.xlim()[1])
+        ax4.set_xticklabels(ax4.get_xticks(), rotation=45, ha='right')
+        ax4.tick_params(labelleft=False)
+        functions.adjust_ticks_ax(ax4)
 
         plt.subplots_adjust(wspace=0)
-        save_figure(directory, name=export_file)
+        functions.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_spectral_results(lightcurve, export_file):
@@ -1633,129 +1630,93 @@ def plot_fitting(dictionary, directory):
 
         fig = plt.figure(figsize=(10, n_plots * 2.5))
         fig.set_tight_layout(False)
-        plt.subplot(n_plots, 1, 1)
-        plt.cla()
-        plt.subplot(n_plots, 1, 2)
-        plt.cla()
-        plt.subplot(n_plots, 1, 3)
-        plt.cla()
-        plt.subplot(n_plots, 1, 4)
-        plt.cla()
-        plt.subplot(n_plots, 1, 5)
-        plt.cla()
+        ax1 = plt.subplot(n_plots, 1, 1)
+        ax1.cla()
+        ax2 = plt.subplot(n_plots, 1, 2)
+        ax2.cla()
+        ax3 = plt.subplot(n_plots, 1, 3)
+        ax3.cla()
+        ax4 = plt.subplot(n_plots, 1, 4)
+        ax4.cla()
+        ax5 = plt.subplot(n_plots, 1, 5)
+        ax5.cla()
 
         # plot 1
 
-        plt.subplot(n_plots, 1, 1)
-
-        plt.errorbar(wavelength_mean, wavelength_width, xerr=wavelength_width / 2.,
+        ax1.errorbar(wavelength_mean, wavelength_width, xerr=wavelength_width / 2.,
                      fmt='o', color='k', ms=n_plots, mec='None')
-
-        plt.ylabel(r'$\mathrm{bin} \ \mathrm{width} \, (\mu \mathrm{m})$', fontsize=15)
-
-
-        adjust_ticks()
-        plt.tick_params(labelbottom='off')
+        ax1.set_ylabel(r'$\mathrm{bin} \ \mathrm{width} \, (\mu \mathrm{m})$', fontsize=15)
+        ax1.tick_params(labelbottom=False)
+        functions.adjust_ticks_ax(ax1)
 
         # plot 2
 
-        plt.subplot(n_plots, 1, 2)
-
-        plt.plot(wavelength_mean, a1, 'bo', ms=5, mec='None', label=r'$\mathrm{ldc_1}$')
-        plt.plot(wavelength_mean, a2, 'ro', ms=5, mec='None', label=r'$\mathrm{ldc_2}$')
-        plt.plot(wavelength_mean, a3, 'go', ms=5, mec='None', label=r'$\mathrm{ldc_3}$')
-        plt.plot(wavelength_mean, a4, 'ko', ms=5, mec='None', label=r'$\mathrm{ldc_4}$')
-        plt.legend()
-
-        plt.ylabel(r'$\mathrm{limb}$' + '\n' + r'$\mathrm{darkening}$', fontsize=15)
-
-
-        adjust_ticks()
-        plt.tick_params(labelbottom='off')
+        ax2.plot(wavelength_mean, a1, 'bo', ms=5, mec='None', label=r'$\mathrm{ldc_1}$')
+        ax2.plot(wavelength_mean, a2, 'ro', ms=5, mec='None', label=r'$\mathrm{ldc_2}$')
+        ax2.plot(wavelength_mean, a3, 'go', ms=5, mec='None', label=r'$\mathrm{ldc_3}$')
+        ax2.plot(wavelength_mean, a4, 'ko', ms=5, mec='None', label=r'$\mathrm{ldc_4}$')
+        ax2.legend()
+        ax2.set_ylabel('{0}{1}{2}'.format(r'$\mathrm{limb}$', '\n', r'$\mathrm{darkening}$', fontsize=15))
+        ax2.tick_params(labelbottom=False)
+        functions.adjust_ticks_ax(ax2)
 
         # plot 3
 
-        plt.subplot(n_plots, 1, 3)
-
-        plt.errorbar(wavelength_mean, rp, rp_er, color='k', fmt='-o', mec='None')
+        ax3.errorbar(wavelength_mean, rp, rp_er, color='k', fmt='-o', mec='None')
 
         if eclipse:
-            plt.ylabel(r'$F_\mathrm{p} / F_*}$', fontsize=15)
+            ax3.set_ylabel(r'$F_\mathrm{p} / F_*}$', fontsize=15)
         else:
-            plt.ylabel(r'$R_\mathrm{p} / R_*}$', fontsize=15)
+            ax3.set_ylabel(r'$R_\mathrm{p} / R_*}$', fontsize=15)
 
         dy = 0.6 * (np.max(rp) - np.min(rp)) + np.max(rp_er)
-        plt.ylim((np.max(rp) + np.min(rp)) / 2 - dy, (np.max(rp) + np.min(rp)) / 2 + dy)
-
-
-        adjust_ticks()
-        plt.tick_params(labelbottom='off')
+        ax3.set_ylim((np.max(rp) + np.min(rp)) / 2 - dy, (np.max(rp) + np.min(rp)) / 2 + dy)
+        ax3.tick_params(labelbottom=False)
+        functions.adjust_ticks_ax(ax3)
 
         # plot 4
 
+        next_ax = ax5
+
         if len(n_l_for) > 0 and n_plots == 5:
 
-            plt.subplot(n_plots, 1, 4)
-
-            plt.errorbar(wavelength_mean, n_l_for, n_l_for_er, color='k', fmt='-o', mec='None')
-
-            plt.ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
-
-
-            adjust_ticks()
-            plt.tick_params(labelbottom='off')
-
-            plt.subplot(n_plots, 1, 5)
+            ax4.errorbar(wavelength_mean, n_l_for, n_l_for_er, color='k', fmt='-o', mec='None')
+            ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
+            ax4.tick_params(labelbottom=False)
+            functions.adjust_ticks_ax(ax4)
 
         elif len(n_l_rev) > 0 and n_plots == 5:
 
-            plt.subplot(n_plots, 1, 4)
-
-            plt.errorbar(wavelength_mean, n_l_rev, n_l_rev_er, color='k', fmt='-o', mec='None')
-
-            plt.ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
-
-            adjust_ticks()
-            plt.tick_params(labelbottom='off')
-
-            plt.subplot(n_plots, 1, 5)
+            ax4.errorbar(wavelength_mean, n_l_rev, n_l_rev_er, color='k', fmt='-o', mec='None')
+            ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
+            ax4.tick_params(labelbottom=False)
+            functions.adjust_ticks_ax(ax4)
 
         elif n_plots == 6:
 
-            plt.subplot(n_plots, 1, 4)
+            ax4.errorbar(wavelength_mean, n_l_for, n_l_for_er, color='k', fmt='-o', mec='None')
+            ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
+            ax4.tick_params(labelbottom=False)
+            functions.adjust_ticks_ax(ax4)
 
-            plt.errorbar(wavelength_mean, n_l_for, n_l_for_er, color='k', fmt='-o', mec='None')
+            ax5.errorbar(wavelength_mean, n_l_rev, n_l_rev_er, color='k', fmt='-o', mec='None')
+            ax5.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
+            ax5.tick_params(labelbottom=False)
+            functions.adjust_ticks_ax(ax5)
 
-            plt.ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
-
-
-            adjust_ticks()
-            plt.tick_params(labelbottom='off')
-
-            plt.subplot(n_plots, 1, 5)
-
-            plt.errorbar(wavelength_mean, n_l_rev, n_l_rev_er, color='k', fmt='-o', mec='None')
-
-            plt.ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
-
-
-            adjust_ticks()
-            plt.tick_params(labelbottom='off')
-
-            plt.subplot(n_plots, 1, 6)
+            next_ax = plt.subplot(n_plots, 1, 6)
 
         # plot 5
 
-        plt.errorbar(wavelength_mean, r_a1, r_a1_er, color='k', fmt='-o', mec='None')
+        next_ax.errorbar(wavelength_mean, r_a1, r_a1_er, color='k', fmt='-o', mec='None')
 
-        plt.ylabel(r'$\mathrm{ramp} \ \mathrm{slope}$', fontsize=15)
-        plt.xlabel(r'$\lambda \, (\mu \mathrm{m})$', fontsize=15)
+        next_ax.set_ylabel(r'$\mathrm{ramp} \ \mathrm{slope}$', fontsize=15)
+        next_ax.set_xlabel(r'$\lambda \, (\mu \mathrm{m})$', fontsize=15)
 
-
-        adjust_ticks()
+        functions.adjust_ticks_ax(next_ax)
 
         plt.subplots_adjust(hspace=0)
-        save_figure(directory, name=export_file)
+        functions.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_diagnostics(lightcurve, export_file):
@@ -1808,8 +1769,8 @@ def plot_fitting(dictionary, directory):
 
         plt.ylabel(r'$\Delta y_i \, \mathrm{(pix)}$', fontsize=15)
 
-        adjust_ticks()
-        plt.tick_params(labelbottom='off')
+        functions.adjust_ticks()
+        plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 2)
         plt.cla()
@@ -1818,9 +1779,9 @@ def plot_fitting(dictionary, directory):
         plt.errorbar(hjd_time[reverse], xshift[reverse], xshift_err[reverse],
                      fmt='o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        adjust_ticks()
+        functions.adjust_ticks()
         plt.ylabel(r'$\Delta x_i \, \mathrm{(pix)}$', fontsize=15)
-        plt.tick_params(labelbottom='off')
+        plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 3)
         plt.cla()
@@ -1829,9 +1790,9 @@ def plot_fitting(dictionary, directory):
         plt.plot(hjd_time[reverse], ssky[reverse],
                  'o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        adjust_ticks()
+        functions.adjust_ticks()
         plt.ylabel(r'$\mathrm{sky} \, \mathrm{ratio}$', fontsize=15)
-        plt.tick_params(labelbottom='off')
+        plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 4)
         plt.cla()
@@ -1840,51 +1801,34 @@ def plot_fitting(dictionary, directory):
         plt.plot((np.array(hjd_time) - hjd_time[0])[reverse], np.array(flux)[reverse] / (10 ** 8),
                  'o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        adjust_ticks()
+        functions.adjust_ticks()
 
         plt.ylabel(r'$\mathrm{e}^{-} \, (\times 10^8)$', fontsize=15)
         plt.xlabel(r'$\Delta t \, \mathrm{(days)}$', fontsize=15)
 
         plt.subplots_adjust(hspace=0)
-        save_figure(directory, name=export_file)
+        functions.save_figure(directory, name=export_file)
         plt.close('all')
 
-    try:
-        plot_diagnostics(dictionary['lightcurves'], 'diagnostics')
-    except:
-        pass
+    print('1')
+    plot_diagnostics(dictionary['lightcurves'], 'diagnostics')
+    print('2')
+    plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
+    print('3')
+    plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
+    print('4')
+    plot_fitting_i(dictionary['lightcurves'], 'white', 'white_fitting')
+    print('5')
+    plot_fitting_all(dictionary['lightcurves'], 'all_fitting')
+    print('6')
+    plot_spectral_results(dictionary['lightcurves'], 'spectral_results')
 
     try:
-        plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
-    except:
-        pass
+        plot_correlations(dictionary['lightcurves'], 'bin_10', 'bin_correlations')
+    except KeyError:
+        plot_correlations(dictionary['lightcurves'], 'bin_01', 'bin_correlations')
 
     try:
-        plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
-    except:
-        pass
-
-    try:
-        plot_fitting_i(dictionary['lightcurves'], 'white', 'white_fitting')
-    except:
-        pass
-
-    try:
-        plot_fitting_all(dictionary['lightcurves'], 'all_fitting')
-    except:
-        pass
-
-    try:
-        plot_spectral_results(dictionary['lightcurves'], 'spectral_results')
-    except:
-        pass
-
-    try:
-        plot_correlations(dictionary['lightcurves'], 'bin_10', 'bin_10_correlations')
-    except:
-        pass
-
-    try:
-        plot_fitting_i(dictionary['lightcurves'], 'bin_10', 'bin_10_fitting')
-    except:
-        pass
+        plot_fitting_i(dictionary['lightcurves'], 'bin_10', 'bin_fitting')
+    except KeyError:
+        plot_fitting_i(dictionary['lightcurves'], 'bin_01', 'bin_fitting')

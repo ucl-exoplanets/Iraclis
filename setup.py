@@ -6,7 +6,8 @@ import glob
 name = 'iraclis'
 description = 'Analysis pipeline for HST/WFC3 spectroscopic observations of exoplanet transits and eclipses'
 url = 'https://github.com/ucl-exoplanets/Iraclis'
-install_requires = ['pylightcurve', 'astropy', 'scipy', 'ephem']
+install_requires = ['matplotlib', 'docopt', 'pylightcurve', 'astropy', 'scipy', 'ephem']
+entry_point = '__run__:process_visit'
 
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
@@ -50,15 +51,16 @@ setup(
     url=url,
     author='Angelos Tsiaras',
     author_email='aggelostsiaras@gmail.com',
-    license='MIT',
+    license='Creative Commons Attribution 4.0 International License',
     classifiers=['Development Status :: 4 - Beta',
                  'Environment :: Console',
                  'Intended Audience :: Science/Research',
                  'Topic :: Scientific/Engineering :: Astronomy',
                  'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
                  'Operating System :: MacOS :: MacOS X',
-                 'Programming Language :: Python :: 2.7',
+                 'Programming Language :: Python :: 3.7',
                  ],
+    entry_points={'console_scripts': ['{0} = {0}.{1}'.format(name, entry_point)]},
     packages=[name],
     install_requires=install_requires,
     include_package_data=True,

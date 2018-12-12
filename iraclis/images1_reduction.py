@@ -14,7 +14,7 @@ Contents: functions that perform reduction processes
 
 """
 
-from basics import *
+from ._3objects import *
 
 
 def timing(input_data):
@@ -50,21 +50,23 @@ def timing(input_data):
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    exposure_start = pipeline_variables.exposure_start.custom()
-    exposure_end = pipeline_variables.exposure_end.custom()
-    ra_target = pipeline_variables.ra_target.custom()
-    dec_target = pipeline_variables.dec_target.custom()
-    heliocentric_julian_date = pipeline_variables.heliocentric_julian_date.custom()
+    exposure_start = variables.exposure_start.custom()
+    exposure_end = variables.exposure_end.custom()
+    ra_target = variables.ra_target.custom()
+    dec_target = variables.dec_target.custom()
+    heliocentric_julian_date = variables.heliocentric_julian_date.custom()
 
     # initiate counter
 
-    counter = PipelineCounter('Timing', fits_list_size(input_data))
+    counter = PipelineCounter('Timing', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         # get the exposure start and end times, as well as the target RA and DEC from the fits file
 
@@ -149,22 +151,24 @@ def bias(input_data):
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    zero_read_frame = pipeline_variables.zero_read.custom()
-    zero_read_error_frame = pipeline_variables.zero_read_error.custom()
-    reference_pixels_level = pipeline_variables.reference_pixels_level.custom()
+    zero_read_frame = variables.zero_read.custom()
+    zero_read_error_frame = variables.zero_read_error.custom()
+    reference_pixels_level = variables.reference_pixels_level.custom()
     
-    ccd_gain = calibration_variables.ccd_gain.match(input_data)
-    ccd_read_noise = calibration_variables.ccd_read_noise.match(input_data)
+    ccd_gain = calibrations.ccd_gain.match(input_data)
+    ccd_read_noise = calibrations.ccd_read_noise.match(input_data)
 
     # initiate counter
 
-    counter = PipelineCounter('Bias', fits_list_size(input_data))
+    counter = PipelineCounter('Bias', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         # check if the zero-read has been identified
 
@@ -180,8 +184,8 @@ def bias(input_data):
             # locate and rename the zero-read and the zero-read error-array
             # (first non-destructive read - i.e. last in the list of scientific frames)
 
-            fits[sci(fits)[-1]].name = zero_read_frame.keyword
-            fits[err(fits)[-1]].name = zero_read_error_frame.keyword
+            fits[functions.sci(fits)[-1]].name = zero_read_frame.keyword
+            fits[functions.err(fits)[-1]].name = zero_read_error_frame.keyword
 
             # get the zero-read and the zero-read error-array from the fits file
 
@@ -190,7 +194,7 @@ def bias(input_data):
 
         # iterate over the NDRs
 
-        for i, j in sci_err(fits):
+        for i, j in functions.sci_err(fits):
 
             # get the NDR from the fits file
 
@@ -288,29 +292,31 @@ def linearity(input_data):
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    zero_read = pipeline_variables.zero_read.custom()
-    zero_read_error = pipeline_variables.zero_read_error.custom()
-    zero_read_flux = pipeline_variables.zero_read_flux.custom()
-    zero_read_flux_error = pipeline_variables.zero_read_flux_error.custom()
+    zero_read = variables.zero_read.custom()
+    zero_read_error = variables.zero_read_error.custom()
+    zero_read_flux = variables.zero_read_flux.custom()
+    zero_read_flux_error = variables.zero_read_flux_error.custom()
 
-    super_zero_read = calibration_variables.super_zero_read.match(input_data)
-    super_zero_read_error = calibration_variables.super_zero_read_error.match(input_data)
-    ccd_gain = calibration_variables.ccd_gain.match(input_data)
-    ccd_read_noise = calibration_variables.ccd_read_noise.match(input_data)
-    linearity_coefficient_1 = calibration_variables.linearity_coefficient_1.match(input_data)
-    linearity_coefficient_2 = calibration_variables.linearity_coefficient_2.match(input_data)
-    linearity_coefficient_3 = calibration_variables.linearity_coefficient_3.match(input_data)
-    linearity_coefficient_4 = calibration_variables.linearity_coefficient_4.match(input_data)
+    super_zero_read = calibrations.super_zero_read.match(input_data)
+    super_zero_read_error = calibrations.super_zero_read_error.match(input_data)
+    ccd_gain = calibrations.ccd_gain.match(input_data)
+    ccd_read_noise = calibrations.ccd_read_noise.match(input_data)
+    linearity_coefficient_1 = calibrations.linearity_coefficient_1.match(input_data)
+    linearity_coefficient_2 = calibrations.linearity_coefficient_2.match(input_data)
+    linearity_coefficient_3 = calibrations.linearity_coefficient_3.match(input_data)
+    linearity_coefficient_4 = calibrations.linearity_coefficient_4.match(input_data)
 
     # initiate counter
 
-    counter = PipelineCounter('Linearity', fits_list_size(input_data))
+    counter = PipelineCounter('Linearity', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         # check if the zero-read has been identified
 
@@ -326,8 +332,8 @@ def linearity(input_data):
             # locate and rename the zero-read and the zero-read error-array
             # (first non-destructive read - i.e. last in the list of scientific frames)
 
-            fits[sci(fits)[-1]].name = zero_read.keyword
-            fits[err(fits)[-1]].name = zero_read_error.keyword
+            fits[functions.sci(fits)[-1]].name = zero_read.keyword
+            fits[functions.err(fits)[-1]].name = zero_read_error.keyword
 
             # get the zero-read and the zero-read error-array from the fits file
 
@@ -347,7 +353,7 @@ def linearity(input_data):
 
         # iterate over the NDRs
 
-        for i, j in sci_err(fits):
+        for i, j in functions.sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -440,21 +446,23 @@ def dark(input_data, splitting=False):
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    super_dark = calibration_variables.super_dark.match(input_data)
+    super_dark = calibrations.super_dark.match(input_data)
 
     # initiate counter
 
-    counter = PipelineCounter('Dark', fits_list_size(input_data))
+    counter = PipelineCounter('Dark', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         # iterate over the NDRs
 
-        for i, j in sci_err(fits):
+        for i, j in functions.sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -463,7 +471,8 @@ def dark(input_data, splitting=False):
 
             if splitting:
                 dark_current = np.array(super_dark[i].data - super_dark[i + 5].data, dtype=float)
-                dark_current_error = np.sqrt(super_dark[j].data ** 2 + super_dark[j + 5].data ** 2, dtype=float)
+                dark_current_error = np.sqrt(np.array(super_dark[j].data ** 2 + super_dark[j + 5].data ** 2,
+                                                      dtype=float))
             else:
                 dark_current = np.array(super_dark[i].data, dtype=float)
                 dark_current_error = np.array(super_dark[j].data, dtype=float)
@@ -528,22 +537,24 @@ def gain(input_data):
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    gain_profile = calibration_variables.gain_profile.match(input_data)
-    mean_gain = calibration_variables.mean_gain.match(input_data)
+    gain_profile = calibrations.gain_profile.match(input_data)
+    mean_gain = calibrations.mean_gain.match(input_data)
 
     # initiate counter
 
-    counter = PipelineCounter('Gain', fits_list_size(input_data))
+    counter = PipelineCounter('Gain', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         # iterate over the NDRs
 
-        for i, j in sci_err(fits):
+        for i, j in functions.sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -609,14 +620,16 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    sky_detection_limit = pipeline_variables.sky_detection_limit.custom(sky_detection_limit)
+    sky_detection_limit = variables.sky_detection_limit.custom(sky_detection_limit)
 
-    sky_background_level = pipeline_variables.sky_background_level.custom()
-    sky_frame = pipeline_variables.sky_area.custom()
+    sky_background_level = variables.sky_background_level.custom()
+    sky_frame = variables.sky_area.custom()
 
-    master_sky = calibration_variables.master_sky.match(input_data)
+    master_sky = calibrations.master_sky.match(input_data)
 
     # filter the zero values in the master-sky
 
@@ -624,21 +637,22 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
 
     # initiate counter
 
-    counter = PipelineCounter('Sky', fits_list_size(input_data))
+    counter = PipelineCounter('Sky', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         if not splitting:
 
             # calculate all the differential combinations of the NDRs (the first read is included as it is)
 
-            differential_science = [fits[sci(fits)[-1]].data]
+            differential_science = [fits[functions.sci(fits)[-1]].data]
 
-            for i in range(len(sci(fits))):
-                for j in range(i + 1, len(sci(fits))):
-                    differential_science.append(np.array(fits[sci(fits)[i]].data - fits[sci(fits)[j]].data))
+            for i in range(len(functions.sci(fits))):
+                for j in range(i + 1, len(functions.sci(fits))):
+                    differential_science.append(np.array(fits[functions.sci(fits)[i]].data -
+                                                         fits[functions.sci(fits)[j]].data))
 
             # apply an eight-pixel moving average smoothing on the differential combinations
 
@@ -687,7 +701,7 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
 
         # iterate over the NDRs
 
-        for i, j in sci_err(fits):
+        for i, j in functions.sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -748,22 +762,24 @@ def flat(input_data):
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    normalised_wavelength_frame = pipeline_variables.normalised_wavelength_frame
+    normalised_wavelength_frame = variables.normalised_wavelength_frame
 
-    flat_field_coefficient_1 = calibration_variables.flat_field_coefficient_1.match(input_data)
-    flat_field_coefficient_2 = calibration_variables.flat_field_coefficient_2.match(input_data)
-    flat_field_coefficient_3 = calibration_variables.flat_field_coefficient_3.match(input_data)
-    flat_field_coefficient_4 = calibration_variables.flat_field_coefficient_4.match(input_data)
+    flat_field_coefficient_1 = calibrations.flat_field_coefficient_1.match(input_data)
+    flat_field_coefficient_2 = calibrations.flat_field_coefficient_2.match(input_data)
+    flat_field_coefficient_3 = calibrations.flat_field_coefficient_3.match(input_data)
+    flat_field_coefficient_4 = calibrations.flat_field_coefficient_4.match(input_data)
 
     # initiate counter
 
-    counter = PipelineCounter('Flat', fits_list_size(input_data))
+    counter = PipelineCounter('Flat', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         # get the wavelength of each pixel from the fits file
 
@@ -783,7 +799,7 @@ def flat(input_data):
 
         # iterate over the NDRs
 
-        for i, j in sci_err(fits):
+        for i, j in functions.sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -838,9 +854,6 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
     cr_neighbours : integer
         number of neighbouring pixels from which the x and y flags are calculated
 
-    fast_mode : bool
-        whether to avoid correcting all the read or not
-
     Returns
     -------
     input_data : HDUList or DataSet object
@@ -848,23 +861,25 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    cr_neighbours = pipeline_variables.cr_neighbours.custom(cr_neighbours)
-    cr_detection_limit = pipeline_variables.cr_detection_limit.custom(cr_detection_limit)
-    use_bpcr_fast_mode = pipeline_variables.use_bpcr_fast_mode.custom(use_bpcr_fast_mode)
+    cr_neighbours = variables.cr_neighbours.custom(cr_neighbours)
+    cr_detection_limit = variables.cr_detection_limit.custom(cr_detection_limit)
+    use_bpcr_fast_mode = variables.use_bpcr_fast_mode.custom(use_bpcr_fast_mode)
 
-    bpcr_map = pipeline_variables.bpcr_map.custom()
+    bpcr_map = variables.bpcr_map.custom()
 
-    bad_pixels = calibration_variables.bad_pixels.match(input_data)
+    bad_pixels = calibrations.bad_pixels.match(input_data)
 
     # initiate counter
 
-    counter = PipelineCounter('BPs & CRs', fits_list_size(input_data))
+    counter = PipelineCounter('BPs & CRs', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         if not splitting:
 
@@ -876,7 +891,7 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
             x_flag = []
             y_flag = []
 
-            for i in range(1, 1 + int(cr_neighbours.value) / 2):
+            for i in range(1, int(1 + cr_neighbours.value / 2)):
                 x_flag.append(frame - np.roll(frame, i, 1))
                 x_flag.append(frame - np.roll(frame, -i, 1))
                 y_flag.append(frame - np.roll(frame, i, 0))
@@ -891,7 +906,7 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
             x_detection_limit = []
             y_detection_limit = []
 
-            for i in range(1, 1 + int(cr_neighbours.value) / 2):
+            for i in range(1, int(1 + cr_neighbours.value / 2)):
                 x_detection_limit.append(np.roll(x_flag, i, 1))
                 x_detection_limit.append(np.roll(x_flag, -i, 1))
                 y_detection_limit.append(np.roll(y_flag, i, 0))
@@ -900,33 +915,10 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
             x_detection_limit = cr_detection_limit.value * np.median(x_detection_limit, 0)
             y_detection_limit = cr_detection_limit.value * np.median(y_detection_limit, 0)
 
-            # characterise as cosmic rays only the pixes which have both their flags above the respective detection limit
+            # characterise as cosmic rays only the pixes which have both flags above the respective detection limit
 
             cr_test = np.where((x_flag > x_detection_limit) & (y_flag > y_detection_limit), 1, 0)
             cr_test = np.where(cr_test == 1)
-
-            # local_x_flag = []
-            # local_y_flag = []
-            #
-            # for i in range(1, 1 + int(cr_neighbours.value) / 2):
-            #     local_x_flag.append(np.roll(x_flag, i, 0))
-            #     local_x_flag.append(np.roll(x_flag, -i, 0))
-            #     local_y_flag.append(np.roll(y_flag, i, 1))
-            #     local_y_flag.append(np.roll(y_flag, -i, 1))
-            #
-            # median_x_flag = np.median(local_x_flag, 0)
-            # median_y_flag = np.median(local_y_flag, 0)
-            #
-            # med_x_flag = np.median(np.abs(local_x_flag - median_x_flag), 0)
-            # med_y_flag = np.median(np.abs(local_y_flag - median_y_flag), 0)
-            #
-            # x_detection_limit = cr_detection_limit.value * med_x_flag
-            # y_detection_limit = cr_detection_limit.value * med_y_flag
-            #
-            # # characterise as cosmic rays only the pixes which have both their flags above the respective detection limit
-            #
-            # cr_test = np.where((np.abs(x_flag - median_x_flag) > x_detection_limit) & (np.abs(y_flag - median_y_flag) > y_detection_limit), 1, 0)
-            # cr_test = np.where(cr_test == 1)
 
             # in the the bad pixels table the bad pixels are characterised by the number -1
             # characterise the cosmic rays by the number 1
@@ -951,7 +943,7 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
         data = np.sum(fits[1].data, 0)
         model = tools.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
         dx = np.argmax(np.convolve(data, model)) - np.argmax(np.convolve(model, model))
-        x_lim1, x_lim2 = len(data) / 2 + dx - 55, len(data) / 2 + dx + 55
+        x_lim1, x_lim2 = int(len(data) / 2 + dx - 55), int(len(data) / 2 + dx + 55)
 
         # detect the approximate vertical position of the final spectrum
 
@@ -959,8 +951,8 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
         y1 = 5 + np.median(np.argmax(data[5:, x_lim1:x_lim2] - data[:-5, x_lim1:x_lim2], 0))
         y2 = np.median(np.argmin(data[5:, x_lim1:x_lim2] - data[:-5, x_lim1:x_lim2], 0))
         if abs(y2 - y1) <= 1:
-            y1 = 2 + np.median(np.argmax(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0))
-            y2 = np.median(np.argmin(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0))
+            y1 = float(2 + np.median(np.argmax(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0)))
+            y2 = float(np.median(np.argmin(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0)))
         final_y_lim1, final_y_lim2 = np.sort([int(round(y1)), int(round(y2))])
 
         if abs(final_y_lim1 - final_y_lim2) > 1:
@@ -970,13 +962,13 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
 
         # correct each read for the bad pixels and the cosmic rays
 
-        if len(sci_err(fits)) == 1:
-            corr = [sci_err(fits)[0]]
+        if len(functions.sci_err(fits)) == 1:
+            corr = [functions.sci_err(fits)[0]]
         else:
             if use_bpcr_fast_mode.value:
-                corr = [sci_err(fits)[0], sci_err(fits)[-1]]
+                corr = [functions.sci_err(fits)[0], functions.sci_err(fits)[-1]]
             else:
-                corr = sci_err(fits)
+                corr = functions.sci_err(fits)
 
         for i, j in corr:
 

@@ -1,4 +1,5 @@
 *.pyc
 *.egg-info/
 MANIFEST.in
-iraclis/wfc3_calibration_files/
+examples/iraclis_test_dataset_hatp26b/
+iraclis/*_local_*

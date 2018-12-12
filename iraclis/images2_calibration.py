@@ -23,19 +23,19 @@ get_relative_position:      ...
 get_scan_length:            ...
 """
 
-from basics import *
+from ._3objects import *
 
 
 def get_position_diagnostics(fits):
 
     # set the reference pixels 0 so not to cause problems later
 
-    first_read_index = sci(fits)[-1]
+    first_read_index = functions.sci(fits)[-1]
 
     data = np.sum(fits[1].data, 0)
     model = tools.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
     dx = np.argmax(np.convolve(data, model)) - np.argmax(np.convolve(model, model))
-    x_lim1, x_lim2 = len(data) / 2 + dx - 55, len(data) / 2 + dx + 55
+    x_lim1, x_lim2 = int(len(data) / 2 + dx - 55), int(len(data) / 2 + dx + 55)
 
     # detect the approximate vertical position of the final spectrum
 
@@ -45,7 +45,7 @@ def get_position_diagnostics(fits):
     if abs(y2 - y1) <= 1:
         y1 = 2 + np.median(np.argmax(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0))
         y2 = np.median(np.argmin(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0))
-    final_y_lim1, final_y_lim2 = np.sort([int(round(y1)), int(round(y2))])
+    final_y_lim1, final_y_lim2 = np.sort([int(round(float(y1))), int(round(float(y2)))])
 
     # detect the approximate vertical position of the spectrum in the first read
 
@@ -55,7 +55,7 @@ def get_position_diagnostics(fits):
     if abs(y2 - y1) <= 1:
         y1 = 2 + np.median(np.argmax(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0))
         y2 = np.median(np.argmin(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0))
-    initial_y_lim1, initial_y_lim2 = np.sort([int(round(y1)), int(round(y2))])
+    initial_y_lim1, initial_y_lim2 = np.sort([int(round(float(y1))), int(round(float(y2)))])
 
     if abs(final_y_lim1 - final_y_lim2) > 1:
         final_scan = True
@@ -79,12 +79,12 @@ def get_standard_flat(fits, sample, use_standard_flat):
 
     if use_standard_flat:
 
-        spectrum_bottom = pipeline_variables.spectrum_bottom.custom_from_fits(fits)
-        spectrum_top = pipeline_variables.spectrum_top.custom_from_fits(fits)
-        spectrum_left = pipeline_variables.spectrum_left.custom_from_fits(fits)
-        spectrum_right = pipeline_variables.spectrum_right.custom_from_fits(fits)
+        spectrum_bottom = variables.spectrum_bottom.custom_from_fits(fits)
+        spectrum_top = variables.spectrum_top.custom_from_fits(fits)
+        spectrum_left = variables.spectrum_left.custom_from_fits(fits)
+        spectrum_right = variables.spectrum_right.custom_from_fits(fits)
 
-        flatfield = calibration_variables.flat_field_coefficient_1.match(fits)
+        flatfield = calibrations.flat_field_coefficient_1.match(fits)
         flatfield = np.where(flatfield == 0, 0.000001, flatfield)
 
         a = fits[1].data / flatfield
@@ -133,9 +133,9 @@ def get_standard_flat(fits, sample, use_standard_flat):
 
 def get_absolute_x_star(fits, direct_image, target_x_offset):
 
-    wfc3_aperture = pipeline_variables.wfc3_aperture.custom()
-    postarg1 = pipeline_variables.postarg1.custom()
-    grism = pipeline_variables.grism.custom()
+    wfc3_aperture = variables.wfc3_aperture.custom()
+    postarg1 = variables.postarg1.custom()
+    grism = variables.grism.custom()
 
     direct_image_offsets = {'F098W': 0.150, 'F132N': 0.039, 'F140W': 0.083, 'F126N': 0.264, 'F153M': 0.146,
                             'F167N': 0.196, 'F139M': 0.110, 'F164N': 0.169, 'F127M': 0.131, 'F160W': 0.136,
@@ -209,26 +209,26 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
 
 def get_absolute_y_star(fits, target_y_offset, use_standard_flat):
 
-    spectrum_left = pipeline_variables.spectrum_left.custom_from_fits(fits).value
-    spectrum_right = pipeline_variables.spectrum_right.custom_from_fits(fits).value
-    first_spectrum_bottom = pipeline_variables.first_spectrum_bottom.custom_from_fits(fits).value
-    first_spectrum_top = pipeline_variables.first_spectrum_top.custom_from_fits(fits).value
-    spectrum_scan = pipeline_variables.spectrum_scan.custom_from_fits(fits).value
-    first_spectrum_scan = pipeline_variables.first_spectrum_scan.custom_from_fits(fits).value
-    first_spectrum_direction = pipeline_variables.first_spectrum_direction.custom_from_fits(fits).value
-    x_star = pipeline_variables.x_star.custom_from_fits(fits).value
+    spectrum_left = variables.spectrum_left.custom_from_fits(fits).value
+    spectrum_right = variables.spectrum_right.custom_from_fits(fits).value
+    first_spectrum_bottom = variables.first_spectrum_bottom.custom_from_fits(fits).value
+    first_spectrum_top = variables.first_spectrum_top.custom_from_fits(fits).value
+    spectrum_scan = variables.spectrum_scan.custom_from_fits(fits).value
+    first_spectrum_scan = variables.first_spectrum_scan.custom_from_fits(fits).value
+    first_spectrum_direction = variables.first_spectrum_direction.custom_from_fits(fits).value
+    x_star = variables.x_star.custom_from_fits(fits).value
 
-    trace_at0 = calibration_variables.trace_at0.match(fits)
-    trace_at1 = calibration_variables.trace_at1.match(fits)
-    trace_at2 = calibration_variables.trace_at2.match(fits)
-    trace_at3 = calibration_variables.trace_at3.match(fits)
-    trace_at4 = calibration_variables.trace_at4.match(fits)
-    trace_at5 = calibration_variables.trace_at5.match(fits)
-    trace_bt0 = calibration_variables.trace_bt0.match(fits)
-    trace_bt1 = calibration_variables.trace_bt1.match(fits)
-    trace_bt2 = calibration_variables.trace_bt2.match(fits)
+    trace_at0 = calibrations.trace_at0.match(fits)
+    trace_at1 = calibrations.trace_at1.match(fits)
+    trace_at2 = calibrations.trace_at2.match(fits)
+    trace_at3 = calibrations.trace_at3.match(fits)
+    trace_at4 = calibrations.trace_at4.match(fits)
+    trace_at5 = calibrations.trace_at5.match(fits)
+    trace_bt0 = calibrations.trace_bt0.match(fits)
+    trace_bt1 = calibrations.trace_bt1.match(fits)
+    trace_bt2 = calibrations.trace_bt2.match(fits)
 
-    data = get_standard_flat(fits, sci(fits)[-int(spectrum_scan)], use_standard_flat)
+    data = get_standard_flat(fits, functions.sci(fits)[-int(spectrum_scan)], use_standard_flat)
     data = np.swapaxes(data[max(5, first_spectrum_bottom - 20):min(first_spectrum_top + 20, len(fits[1].data) - 5),
                        spectrum_left:spectrum_right], 0, 1)
     rows = np.arange(max(5, first_spectrum_bottom - 20), min(first_spectrum_top + 20, len(fits[1].data) - 5))
@@ -251,7 +251,7 @@ def get_absolute_y_star(fits, target_y_offset, use_standard_flat):
     y0 = curve_fit(trace, cols + 0.5, avg + 0.5, p0=[500])[0][0]
 
     if first_spectrum_scan:
-        data = get_standard_flat(fits, sci(fits)[-1], use_standard_flat)
+        data = get_standard_flat(fits, functions.sci(fits)[-1], use_standard_flat)
         data = np.sum(data[5:-5, max(5, spectrum_left - 20):min(spectrum_right + 20, len(fits[1].data[0]) - 5)], 1)
         rows = np.arange(5, len(fits[1].data) - 5)
         center, center_err, fwhm, fwhm_err, popt = tools.fit_box(rows, data)
@@ -324,64 +324,66 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
     """
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    target_x_offset = pipeline_variables.target_x_offset.custom(target_x_offset)
-    target_y_offset = pipeline_variables.target_y_offset.custom(target_y_offset)
-    comparison_index_forward = pipeline_variables.comparison_index_forward.custom(comparison_index_forward)
-    comparison_index_reverse = pipeline_variables.comparison_index_reverse.custom(comparison_index_reverse)
-    use_standard_flat = pipeline_variables.use_standard_flat.custom(use_standard_flat)
+    target_x_offset = variables.target_x_offset.custom(target_x_offset)
+    target_y_offset = variables.target_y_offset.custom(target_y_offset)
+    comparison_index_forward = variables.comparison_index_forward.custom(comparison_index_forward)
+    comparison_index_reverse = variables.comparison_index_reverse.custom(comparison_index_reverse)
+    use_standard_flat = variables.use_standard_flat.custom(use_standard_flat)
 
-    spectrum_bottom = pipeline_variables.spectrum_bottom.custom()
-    spectrum_top = pipeline_variables.spectrum_top.custom()
-    spectrum_left = pipeline_variables.spectrum_left.custom()
-    spectrum_right = pipeline_variables.spectrum_right.custom()
-    spectrum_scan = pipeline_variables.spectrum_scan.custom()
-    spectrum_direction = pipeline_variables.spectrum_direction.custom()
-    first_spectrum_bottom = pipeline_variables.first_spectrum_bottom.custom()
-    first_spectrum_top = pipeline_variables.first_spectrum_top.custom()
-    first_spectrum_scan = pipeline_variables.first_spectrum_scan.custom()
-    first_spectrum_direction = pipeline_variables.first_spectrum_direction.custom()
-    comparison_x_star = pipeline_variables.comparison_x_star.custom()
-    x_star = pipeline_variables.x_star.custom()
-    x_shift = pipeline_variables.x_shift.custom()
-    x_shift_error = pipeline_variables.x_shift_error.custom()
-    comparison_y_star = pipeline_variables.comparison_y_star.custom()
-    y_star = pipeline_variables.y_star.custom()
-    y_shift = pipeline_variables.y_shift.custom()
-    y_shift_error = pipeline_variables.y_shift_error.custom()
-    scan_length = pipeline_variables.scan_length.custom()
-    scan_length_error = pipeline_variables.scan_length_error.custom()
-    wdpt_constant_coefficient_1 = pipeline_variables.wdpt_constant_coefficient_1.custom()
-    wdpt_constant_coefficient_2 = pipeline_variables.wdpt_constant_coefficient_2.custom()
-    wdpt_constant_coefficient_3 = pipeline_variables.wdpt_constant_coefficient_3.custom()
-    wdpt_slope_coefficient_1 = pipeline_variables.wdpt_slope_coefficient_1.custom()
-    wdpt_slope_coefficient_2 = pipeline_variables.wdpt_slope_coefficient_2.custom()
-    wdpt_slope_coefficient_3 = pipeline_variables.wdpt_slope_coefficient_3.custom()
-    scan_frame = pipeline_variables.scan_frame.custom()
-    wavelength_frame = pipeline_variables.wavelength_frame.custom()
-    normalised_wavelength_frame = pipeline_variables.normalised_wavelength_frame.custom()
+    spectrum_bottom = variables.spectrum_bottom.custom()
+    spectrum_top = variables.spectrum_top.custom()
+    spectrum_left = variables.spectrum_left.custom()
+    spectrum_right = variables.spectrum_right.custom()
+    spectrum_scan = variables.spectrum_scan.custom()
+    spectrum_direction = variables.spectrum_direction.custom()
+    first_spectrum_bottom = variables.first_spectrum_bottom.custom()
+    first_spectrum_top = variables.first_spectrum_top.custom()
+    first_spectrum_scan = variables.first_spectrum_scan.custom()
+    first_spectrum_direction = variables.first_spectrum_direction.custom()
+    comparison_x_star = variables.comparison_x_star.custom()
+    x_star = variables.x_star.custom()
+    x_shift = variables.x_shift.custom()
+    x_shift_error = variables.x_shift_error.custom()
+    comparison_y_star = variables.comparison_y_star.custom()
+    y_star = variables.y_star.custom()
+    y_shift = variables.y_shift.custom()
+    y_shift_error = variables.y_shift_error.custom()
+    scan_length = variables.scan_length.custom()
+    scan_length_error = variables.scan_length_error.custom()
+    wdpt_constant_coefficient_1 = variables.wdpt_constant_coefficient_1.custom()
+    wdpt_constant_coefficient_2 = variables.wdpt_constant_coefficient_2.custom()
+    wdpt_constant_coefficient_3 = variables.wdpt_constant_coefficient_3.custom()
+    wdpt_slope_coefficient_1 = variables.wdpt_slope_coefficient_1.custom()
+    wdpt_slope_coefficient_2 = variables.wdpt_slope_coefficient_2.custom()
+    wdpt_slope_coefficient_3 = variables.wdpt_slope_coefficient_3.custom()
+    scan_frame = variables.scan_frame.custom()
+    wavelength_frame = variables.wavelength_frame.custom()
+    normalised_wavelength_frame = variables.normalised_wavelength_frame.custom()
 
-    trace_at0 = calibration_variables.trace_at0.match(input_data)
-    trace_at1 = calibration_variables.trace_at1.match(input_data)
-    trace_at2 = calibration_variables.trace_at2.match(input_data)
-    trace_at3 = calibration_variables.trace_at3.match(input_data)
-    trace_at4 = calibration_variables.trace_at4.match(input_data)
-    trace_at5 = calibration_variables.trace_at5.match(input_data)
-    trace_bt0 = calibration_variables.trace_bt0.match(input_data)
-    trace_bt1 = calibration_variables.trace_bt1.match(input_data)
-    trace_bt2 = calibration_variables.trace_bt2.match(input_data)
-    wsol_aw0 = calibration_variables.wsol_aw0.match(input_data)
-    wsol_aw1 = calibration_variables.wsol_aw1.match(input_data)
-    wsol_aw2 = calibration_variables.wsol_aw2.match(input_data)
-    wsol_aw3 = calibration_variables.wsol_aw3.match(input_data)
-    wsol_aw4 = calibration_variables.wsol_aw4.match(input_data)
-    wsol_aw5 = calibration_variables.wsol_aw5.match(input_data)
-    wsol_bw0 = calibration_variables.wsol_bw0.match(input_data)
-    wsol_bw1 = calibration_variables.wsol_bw1.match(input_data)
-    wsol_bw2 = calibration_variables.wsol_bw2.match(input_data)
-    flat_field_min_wavelength = calibration_variables.flat_field_min_wavelength.match(input_data)
-    flat_field_max_wavelength = calibration_variables.flat_field_max_wavelength.match(input_data)
+    trace_at0 = calibrations.trace_at0.match(input_data)
+    trace_at1 = calibrations.trace_at1.match(input_data)
+    trace_at2 = calibrations.trace_at2.match(input_data)
+    trace_at3 = calibrations.trace_at3.match(input_data)
+    trace_at4 = calibrations.trace_at4.match(input_data)
+    trace_at5 = calibrations.trace_at5.match(input_data)
+    trace_bt0 = calibrations.trace_bt0.match(input_data)
+    trace_bt1 = calibrations.trace_bt1.match(input_data)
+    trace_bt2 = calibrations.trace_bt2.match(input_data)
+    wsol_aw0 = calibrations.wsol_aw0.match(input_data)
+    wsol_aw1 = calibrations.wsol_aw1.match(input_data)
+    wsol_aw2 = calibrations.wsol_aw2.match(input_data)
+    wsol_aw3 = calibrations.wsol_aw3.match(input_data)
+    wsol_aw4 = calibrations.wsol_aw4.match(input_data)
+    wsol_aw5 = calibrations.wsol_aw5.match(input_data)
+    wsol_bw0 = calibrations.wsol_bw0.match(input_data)
+    wsol_bw1 = calibrations.wsol_bw1.match(input_data)
+    wsol_bw2 = calibrations.wsol_bw2.match(input_data)
+    flat_field_min_wavelength = calibrations.flat_field_min_wavelength.match(input_data)
+    flat_field_max_wavelength = calibrations.flat_field_max_wavelength.match(input_data)
 
     if not splitting:
 
@@ -389,30 +391,30 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         if isinstance(input_data, DataSet):
             if direct_image is None:
-                direct_image = tools.fits_like(input_data.direct_image)
+                direct_image = functions.fits_like(input_data.direct_image)
             else:
-                direct_image = tools.fits_like(direct_image)
+                direct_image = functions.fits_like(direct_image)
             if comparison_forward is None:
-                comparison_forward = tools.fits_like(fits_list(input_data)[comparison_index_forward.value])
+                comparison_forward = functions.fits_like(input_data.spectroscopic_images[comparison_index_forward.value])
             else:
-                comparison_forward = tools.fits_like(comparison_forward)
+                comparison_forward = functions.fits_like(comparison_forward)
             if comparison_reverse is None:
-                comparison_reverse = tools.fits_like(fits_list(input_data)[comparison_index_reverse.value])
+                comparison_reverse = functions.fits_like(input_data.spectroscopic_images[comparison_index_reverse.value])
             else:
-                comparison_reverse = tools.fits_like(comparison_reverse)
+                comparison_reverse = functions.fits_like(comparison_reverse)
         else:
             if direct_image is None:
-                raise PYWFC3InputError('Direct image not given.')
+                raise IraclisInputError('Direct image not given.')
             else:
-                direct_image = tools.fits_like(direct_image)
+                direct_image = functions.fits_like(direct_image)
             if comparison_forward is None:
-                comparison_forward = tools.fits_like(input_data)
+                comparison_forward = functions.fits_like(input_data)
             else:
-                comparison_forward = tools.fits_like(comparison_forward)
+                comparison_forward = functions.fits_like(comparison_forward)
             if comparison_reverse is None:
-                comparison_reverse = tools.fits_like(input_data)
+                comparison_reverse = functions.fits_like(input_data)
             else:
-                comparison_reverse = tools.fits_like(comparison_reverse)
+                comparison_reverse = functions.fits_like(comparison_reverse)
 
         comparisons = {'forward': {'x_star': None, 'y_star': None, 'spectrum_right': None, 'spectrum_bottom': None,
                                    'interp_x': None, 'interp_y': None},
@@ -421,7 +423,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         for name, comparison in [['forward', comparison_forward], ['reverse', comparison_reverse]]:
 
-            for i in sci(comparison):
+            for i in functions.sci(comparison):
                 comparison[i].data[:5, :] = 0
                 comparison[i].data[-5:, :] = 0
                 comparison[i].data[:, :5] = 0
@@ -448,7 +450,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             comparisons[name]['spectrum_right'] = spectrum_right.value
             comparisons[name]['spectrum_bottom'] = first_spectrum_bottom.value
 
-            data = get_standard_flat(comparison, sci(comparison)[0], use_standard_flat.value)
+            data = get_standard_flat(comparison, functions.sci(comparison)[0], use_standard_flat.value)
             if spectrum_scan.value and abs(spectrum_top.value - spectrum_bottom.value) > 15:
                 data = np.sum(data[spectrum_bottom.value + 5:spectrum_top.value - 5], 0)
             else:
@@ -463,7 +465,8 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
             comparisons[name]['interp_x'] = interp1d(cols, data, kind='cubic')
 
-            data = get_standard_flat(comparison, sci(comparison)[-int(spectrum_scan.value)], use_standard_flat.value)
+            data = get_standard_flat(comparison,
+                                     functions.sci(comparison)[-int(spectrum_scan.value)], use_standard_flat.value)
             data = np.sum(
                 data[:, max(7, spectrum_left.value - 20):min(spectrum_right.value + 20,
                                                              len(comparison[1].data) - 7)], 1)
@@ -479,15 +482,15 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         # initiate counter
 
-        counter = PipelineCounter('Calibration', fits_list_size(input_data))
+        counter = PipelineCounter('Calibration', len(input_data.spectroscopic_images))
 
         # iterate over the list of HDUList objects included in the input data
 
-        for fits in fits_list(input_data):
+        for fits in input_data.spectroscopic_images:
 
             # run the position diagnostics
 
-            for i in sci(fits):
+            for i in functions.sci(fits):
                 fits[i].data[:5, :] = 0
                 fits[i].data[-5:, :] = 0
                 fits[i].data[:, :5] = 0
@@ -517,7 +520,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             # calculate the horizontal shift
 
             testx = np.arange(len(fits[1].data))
-            testy = get_standard_flat(fits, sci(fits)[0], use_standard_flat.value)
+            testy = get_standard_flat(fits, functions.sci(fits)[0], use_standard_flat.value)
 
             spectrum_bottom.from_fits(comparison)
             spectrum_top.from_fits(comparison)
@@ -553,7 +556,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             # calculate the vertical shift
 
             testx = np.arange(len(fits[1].data))
-            testy = get_standard_flat(fits, sci(fits)[-int(spectrum_scan.value)], use_standard_flat.value)
+            testy = get_standard_flat(fits, functions.sci(fits)[-int(spectrum_scan.value)], use_standard_flat.value)
 
             testy = np.sum(
                 testy[:, max(7, spectrum_left.value - 20):min(spectrum_right.value + 20,
@@ -698,8 +701,8 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
     else:
 
-        comparison_forward = tools.fits_like(fits_list(input_data)[comparison_index_forward.value])
-        comparison_reverse = tools.fits_like(fits_list(input_data)[comparison_index_reverse.value])
+        comparison_forward = functions.fits_like(input_data.spectroscopic_images[comparison_index_forward.value])
+        comparison_reverse = functions.fits_like(input_data.spectroscopic_images[comparison_index_reverse.value])
 
         # calibrate comparisons for vertical position
 
@@ -708,7 +711,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         for name, comparison in [['forward', comparison_forward], ['reverse', comparison_reverse]]:
 
-            for i in sci(comparison):
+            for i in functions.sci(comparison):
                 comparison[i].data[:5, :] = 0
                 comparison[i].data[-5:, :] = 0
                 comparison[i].data[:, :5] = 0
@@ -732,7 +735,8 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             comparisons[name]['y_star'] = y_star.value
             comparisons[name]['spectrum_bottom'] = spectrum_bottom.value
 
-            data = get_standard_flat(comparison, sci(comparison)[-int(spectrum_scan.value)], use_standard_flat.value)
+            data = get_standard_flat(comparison,
+                                     functions.sci(comparison)[-int(spectrum_scan.value)], use_standard_flat.value)
             data = np.sum(data[:, max(7, spectrum_left.value - 20):min(spectrum_right.value + 20,
                                                                        len(comparison[1].data) - 7)], 1)
 
@@ -747,13 +751,13 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         # initiate counter
 
-        counter = PipelineCounter('Calibration', fits_list_size(input_data))
+        counter = PipelineCounter('Calibration', len(input_data.spectroscopic_images))
 
         # iterate over the list of HDUList objects included in the input data
 
-        for fits in fits_list(input_data):
+        for fits in input_data.spectroscopic_images:
 
-            for i in sci(fits):
+            for i in functions.sci(fits):
                 fits[i].data[:5, :] = 0
                 fits[i].data[-5:, :] = 0
                 fits[i].data[:, :5] = 0
@@ -791,7 +795,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             first_spectrum_scan.to_fits(fits, value=comparisons[comparison_name]['scan'])
 
             testx = np.arange(len(fits[1].data))
-            testy = get_standard_flat(fits, sci(fits)[-int(spectrum_scan.value)], use_standard_flat.value)
+            testy = get_standard_flat(fits, functions.sci(fits)[-int(spectrum_scan.value)], use_standard_flat.value)
             testy = np.sum(testy[:, max(7, spectrum_left.value - 20):min(spectrum_right.value + 20,
                                                                          len(comparison[1].data) - 7)], 1)
 

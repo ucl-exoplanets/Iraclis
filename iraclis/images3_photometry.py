@@ -17,32 +17,32 @@ get_flux_gauss:     ...
 
 """
 
-from basics import *
+from ._3objects import *
 
 
 def get_flux_integral(fits, lower_wavelength, upper_wavelength,
                       aperture_lower_extend, aperture_upper_extend, sigma, plot=False):
 
-    x_star = pipeline_variables.x_star.custom_from_fits(fits).value
-    y_star = pipeline_variables.y_star.custom_from_fits(fits).value
-    spectrum_direction = pipeline_variables.spectrum_direction.custom_from_fits(fits).value
-    scan_length = pipeline_variables.scan_length.custom_from_fits(fits).value
-    wdpt_constant_coefficient_1 = pipeline_variables.wdpt_constant_coefficient_1.custom_from_fits(fits).value
-    wdpt_constant_coefficient_2 = pipeline_variables.wdpt_constant_coefficient_2.custom_from_fits(fits).value
-    wdpt_constant_coefficient_3 = pipeline_variables.wdpt_constant_coefficient_3.custom_from_fits(fits).value
-    wdpt_slope_coefficient_1 = pipeline_variables.wdpt_slope_coefficient_1.custom_from_fits(fits).value
-    wdpt_slope_coefficient_2 = pipeline_variables.wdpt_slope_coefficient_2.custom_from_fits(fits).value
-    wdpt_slope_coefficient_3 = pipeline_variables.wdpt_slope_coefficient_3.custom_from_fits(fits).value
+    x_star = variables.x_star.custom_from_fits(fits).value
+    y_star = variables.y_star.custom_from_fits(fits).value
+    spectrum_direction = variables.spectrum_direction.custom_from_fits(fits).value
+    scan_length = variables.scan_length.custom_from_fits(fits).value
+    wdpt_constant_coefficient_1 = variables.wdpt_constant_coefficient_1.custom_from_fits(fits).value
+    wdpt_constant_coefficient_2 = variables.wdpt_constant_coefficient_2.custom_from_fits(fits).value
+    wdpt_constant_coefficient_3 = variables.wdpt_constant_coefficient_3.custom_from_fits(fits).value
+    wdpt_slope_coefficient_1 = variables.wdpt_slope_coefficient_1.custom_from_fits(fits).value
+    wdpt_slope_coefficient_2 = variables.wdpt_slope_coefficient_2.custom_from_fits(fits).value
+    wdpt_slope_coefficient_3 = variables.wdpt_slope_coefficient_3.custom_from_fits(fits).value
 
-    trace_at0 = calibration_variables.trace_at0.match(fits)
-    trace_at1 = calibration_variables.trace_at1.match(fits)
-    trace_at2 = calibration_variables.trace_at2.match(fits)
-    trace_at3 = calibration_variables.trace_at3.match(fits)
-    trace_at4 = calibration_variables.trace_at4.match(fits)
-    trace_at5 = calibration_variables.trace_at5.match(fits)
-    trace_bt0 = calibration_variables.trace_bt0.match(fits)
-    trace_bt1 = calibration_variables.trace_bt1.match(fits)
-    trace_bt2 = calibration_variables.trace_bt2.match(fits)
+    trace_at0 = calibrations.trace_at0.match(fits)
+    trace_at1 = calibrations.trace_at1.match(fits)
+    trace_at2 = calibrations.trace_at2.match(fits)
+    trace_at3 = calibrations.trace_at3.match(fits)
+    trace_at4 = calibrations.trace_at4.match(fits)
+    trace_at5 = calibrations.trace_at5.match(fits)
+    trace_bt0 = calibrations.trace_bt0.match(fits)
+    trace_bt1 = calibrations.trace_bt1.match(fits)
+    trace_bt2 = calibrations.trace_bt2.match(fits)
 
     def get_trace(dy):
 
@@ -339,10 +339,10 @@ def get_flux_integral(fits, lower_wavelength, upper_wavelength,
 def get_flux_gauss(fits, lower_wavelength, upper_wavelength,
                    aperture_lower_extend, aperture_upper_extend, sigma, plot=False):
 
-    spectrum_direction = pipeline_variables.spectrum_direction.custom_from_fits(fits).value
-    scan_length = pipeline_variables.scan_length.custom_from_fits(fits).value
-    scan_frame = pipeline_variables.scan_frame.custom_from_fits(fits).value
-    wavelength_frame = pipeline_variables.wavelength_frame.custom_from_fits(fits).value
+    spectrum_direction = variables.spectrum_direction.custom_from_fits(fits).value
+    scan_length = variables.scan_length.custom_from_fits(fits).value
+    scan_frame = variables.scan_frame.custom_from_fits(fits).value
+    wavelength_frame = variables.wavelength_frame.custom_from_fits(fits).value
 
     if spectrum_direction > 0:
         y1 = min(aperture_lower_extend, aperture_upper_extend)
@@ -351,8 +351,8 @@ def get_flux_gauss(fits, lower_wavelength, upper_wavelength,
         y1 = - scan_length - max(aperture_lower_extend, aperture_upper_extend)
         y2 = - min(aperture_lower_extend, aperture_upper_extend)
 
-    science_frame = np.array(fits[sci(fits)[0]].data)
-    error_frame = np.array(fits[err(fits)[0]].data)
+    science_frame = np.array(fits[functions.sci(fits)[0]].data)
+    error_frame = np.array(fits[functions.err(fits)[0]].data)
     ph_error_frame = np.sqrt(np.abs(science_frame))
 
     scan_weight = (scipy.special.erf((scan_frame - y1) / ((sigma / 45.) * np.sqrt(2.0))) -
@@ -380,57 +380,59 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
                aperture_lower_extend=None, aperture_upper_extend=None, extraction_method=None,
                extraction_gauss_sigma=None, plot=False):
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    white_lower_wavelength = pipeline_variables.white_lower_wavelength.custom(white_lower_wavelength)
-    white_upper_wavelength = pipeline_variables.white_upper_wavelength.custom(white_upper_wavelength)
-    bins_file = pipeline_variables.bins_file.custom(bins_file)
-    aperture_lower_extend = pipeline_variables.aperture_lower_extend.custom(aperture_lower_extend)
-    aperture_upper_extend = pipeline_variables.aperture_upper_extend.custom(aperture_upper_extend)
-    extraction_method = pipeline_variables.extraction_method.custom(extraction_method)
-    extraction_gauss_sigma = pipeline_variables.extraction_gauss_sigma.custom(extraction_gauss_sigma)
+    white_lower_wavelength = variables.white_lower_wavelength.custom(white_lower_wavelength)
+    white_upper_wavelength = variables.white_upper_wavelength.custom(white_upper_wavelength)
+    bins_file = variables.bins_file.custom(bins_file)
+    aperture_lower_extend = variables.aperture_lower_extend.custom(aperture_lower_extend)
+    aperture_upper_extend = variables.aperture_upper_extend.custom(aperture_upper_extend)
+    extraction_method = variables.extraction_method.custom(extraction_method)
+    extraction_gauss_sigma = variables.extraction_gauss_sigma.custom(extraction_gauss_sigma)
 
-    ra_target = pipeline_variables.ra_target.custom()
-    dec_target = pipeline_variables.dec_target.custom()
-    subarray_size = pipeline_variables.sub_array_size.custom()
-    grism = pipeline_variables.grism.custom()
-    exposure_time = pipeline_variables.exposure_time.custom()
-    bins_number = pipeline_variables.bins_number.custom()
-    heliocentric_julian_date = pipeline_variables.heliocentric_julian_date.custom()
-    spectrum_direction = pipeline_variables.spectrum_direction.custom()
-    sky_background_level = pipeline_variables.sky_background_level.custom()
-    y_star = pipeline_variables.y_star.custom()
-    y_shift_error = pipeline_variables.y_shift_error.custom()
-    x_star = pipeline_variables.x_star.custom()
-    x_shift_error = pipeline_variables.x_shift_error.custom()
-    scan_length = pipeline_variables.scan_length.custom()
-    scan_length_error = pipeline_variables.scan_length_error.custom()
-    heliocentric_julian_date_array = pipeline_variables.heliocentric_julian_date_array.custom()
-    spectrum_direction_array = pipeline_variables.spectrum_direction_array.custom()
-    sky_background_level_array = pipeline_variables.sky_background_level_array.custom()
-    x_star_array = pipeline_variables.x_star_array.custom()
-    x_shift_error_array = pipeline_variables.x_shift_error_array.custom()
-    y_star_array = pipeline_variables.y_star_array.custom()
-    y_shift_error_array = pipeline_variables.y_shift_error_array.custom()
-    scan_length_array = pipeline_variables.scan_length_array.custom()
-    scan_length_error_array = pipeline_variables.scan_length_error_array.custom()
-    white_ldc1 = pipeline_variables.white_ldc1.custom()
-    white_ldc2 = pipeline_variables.white_ldc2.custom()
-    white_ldc3 = pipeline_variables.white_ldc3.custom()
-    white_ldc4 = pipeline_variables.white_ldc4.custom()
+    ra_target = variables.ra_target.custom()
+    dec_target = variables.dec_target.custom()
+    subarray_size = variables.sub_array_size.custom()
+    grism = variables.grism.custom()
+    exposure_time = variables.exposure_time.custom()
+    bins_number = variables.bins_number.custom()
+    heliocentric_julian_date = variables.heliocentric_julian_date.custom()
+    spectrum_direction = variables.spectrum_direction.custom()
+    sky_background_level = variables.sky_background_level.custom()
+    y_star = variables.y_star.custom()
+    y_shift_error = variables.y_shift_error.custom()
+    x_star = variables.x_star.custom()
+    x_shift_error = variables.x_shift_error.custom()
+    scan_length = variables.scan_length.custom()
+    scan_length_error = variables.scan_length_error.custom()
+    heliocentric_julian_date_array = variables.heliocentric_julian_date_array.custom()
+    spectrum_direction_array = variables.spectrum_direction_array.custom()
+    sky_background_level_array = variables.sky_background_level_array.custom()
+    x_star_array = variables.x_star_array.custom()
+    x_shift_error_array = variables.x_shift_error_array.custom()
+    y_star_array = variables.y_star_array.custom()
+    y_shift_error_array = variables.y_shift_error_array.custom()
+    scan_length_array = variables.scan_length_array.custom()
+    scan_length_error_array = variables.scan_length_error_array.custom()
+    white_ldc1 = variables.white_ldc1.custom()
+    white_ldc2 = variables.white_ldc2.custom()
+    white_ldc3 = variables.white_ldc3.custom()
+    white_ldc4 = variables.white_ldc4.custom()
 
-    lower_wavelength = pipeline_variables.lower_wavelength.custom()
-    upper_wavelength = pipeline_variables.upper_wavelength.custom()
-    flux_array = pipeline_variables.flux_array.custom()
-    error_array = pipeline_variables.error_array.custom()
-    ph_error_array = pipeline_variables.ph_error_array.custom()
+    lower_wavelength = variables.lower_wavelength.custom()
+    upper_wavelength = variables.upper_wavelength.custom()
+    flux_array = variables.flux_array.custom()
+    error_array = variables.error_array.custom()
+    ph_error_array = variables.ph_error_array.custom()
 
     # set bins
 
     white_dictionary, bins_dictionaries = \
-        pipeline_variables.set_binning(input_data, white_lower_wavelength.value, white_upper_wavelength.value,
-                                       white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
-                                       bins_file.value)
+        variables.set_binning(input_data, white_lower_wavelength.value, white_upper_wavelength.value,
+                              white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
+                              bins_file.value)
 
     # select extraction method
 
@@ -438,13 +440,13 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
 
     # initiate counter
 
-    counter = PipelineCounter('Photometry', fits_list_size(input_data))
+    counter = PipelineCounter('Photometry', len(input_data.spectroscopic_images))
 
     # iterate over the list of HDUList objects included in the input data
 
     light_curve = {}
 
-    for fits in fits_list(input_data):
+    for fits in input_data.spectroscopic_images:
 
         try:
             ra_target.from_dictionary(light_curve)
@@ -481,7 +483,7 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
         spectrum_direction.from_fits(fits)
         spectrum_direction_array.set(np.append(spectrum_direction_array.value, spectrum_direction.value))
 
-        sky_background_level.from_fits(fits, position=sci(fits)[0])
+        sky_background_level.from_fits(fits, position=functions.sci(fits)[0])
         sky_background_level_array.set(np.append(sky_background_level_array.value, sky_background_level.value))
 
         y_star.from_fits(fits)
@@ -568,57 +570,59 @@ def split_photometry(input_data, white_lower_wavelength=None, white_upper_wavele
                aperture_lower_extend=None, aperture_upper_extend=None, extraction_method=None,
                extraction_gauss_sigma=None, plot=False):
 
+    input_data = DataSet(input_data)
+
     # load pipeline and calibration variables to be used
 
-    white_lower_wavelength = pipeline_variables.white_lower_wavelength.custom(white_lower_wavelength)
-    white_upper_wavelength = pipeline_variables.white_upper_wavelength.custom(white_upper_wavelength)
-    bins_file = pipeline_variables.bins_file.custom(bins_file)
-    aperture_lower_extend = pipeline_variables.aperture_lower_extend.custom(aperture_lower_extend)
-    aperture_upper_extend = pipeline_variables.aperture_upper_extend.custom(aperture_upper_extend)
-    extraction_method = pipeline_variables.extraction_method.custom(extraction_method)
-    extraction_gauss_sigma = pipeline_variables.extraction_gauss_sigma.custom(extraction_gauss_sigma)
+    white_lower_wavelength = variables.white_lower_wavelength.custom(white_lower_wavelength)
+    white_upper_wavelength = variables.white_upper_wavelength.custom(white_upper_wavelength)
+    bins_file = variables.bins_file.custom(bins_file)
+    aperture_lower_extend = variables.aperture_lower_extend.custom(aperture_lower_extend)
+    aperture_upper_extend = variables.aperture_upper_extend.custom(aperture_upper_extend)
+    extraction_method = variables.extraction_method.custom(extraction_method)
+    extraction_gauss_sigma = variables.extraction_gauss_sigma.custom(extraction_gauss_sigma)
 
-    ra_target = pipeline_variables.ra_target.custom()
-    dec_target = pipeline_variables.dec_target.custom()
-    subarray_size = pipeline_variables.sub_array_size.custom()
-    grism = pipeline_variables.grism.custom()
-    exposure_time = pipeline_variables.exposure_time.custom()
-    bins_number = pipeline_variables.bins_number.custom()
-    heliocentric_julian_date_array = pipeline_variables.heliocentric_julian_date_array.custom()
-    spectrum_direction_array = pipeline_variables.spectrum_direction_array.custom()
-    sky_background_level_array = pipeline_variables.sky_background_level_array.custom()
-    x_star_array = pipeline_variables.x_star_array.custom()
-    x_shift_error_array = pipeline_variables.x_shift_error_array.custom()
-    y_star_array = pipeline_variables.y_star_array.custom()
-    y_shift_error_array = pipeline_variables.y_shift_error_array.custom()
-    scan_length_array = pipeline_variables.scan_length_array.custom()
-    scan_length_error_array = pipeline_variables.scan_length_error_array.custom()
-    white_ldc1 = pipeline_variables.white_ldc1.custom()
-    white_ldc2 = pipeline_variables.white_ldc2.custom()
-    white_ldc3 = pipeline_variables.white_ldc3.custom()
-    white_ldc4 = pipeline_variables.white_ldc4.custom()
+    ra_target = variables.ra_target.custom()
+    dec_target = variables.dec_target.custom()
+    subarray_size = variables.sub_array_size.custom()
+    grism = variables.grism.custom()
+    exposure_time = variables.exposure_time.custom()
+    bins_number = variables.bins_number.custom()
+    heliocentric_julian_date_array = variables.heliocentric_julian_date_array.custom()
+    spectrum_direction_array = variables.spectrum_direction_array.custom()
+    sky_background_level_array = variables.sky_background_level_array.custom()
+    x_star_array = variables.x_star_array.custom()
+    x_shift_error_array = variables.x_shift_error_array.custom()
+    y_star_array = variables.y_star_array.custom()
+    y_shift_error_array = variables.y_shift_error_array.custom()
+    scan_length_array = variables.scan_length_array.custom()
+    scan_length_error_array = variables.scan_length_error_array.custom()
+    white_ldc1 = variables.white_ldc1.custom()
+    white_ldc2 = variables.white_ldc2.custom()
+    white_ldc3 = variables.white_ldc3.custom()
+    white_ldc4 = variables.white_ldc4.custom()
 
-    lower_wavelength = pipeline_variables.lower_wavelength.custom()
-    upper_wavelength = pipeline_variables.upper_wavelength.custom()
-    flux_array = pipeline_variables.flux_array.custom()
-    error_array = pipeline_variables.error_array.custom()
-    ph_error_array = pipeline_variables.ph_error_array.custom()
+    lower_wavelength = variables.lower_wavelength.custom()
+    upper_wavelength = variables.upper_wavelength.custom()
+    flux_array = variables.flux_array.custom()
+    error_array = variables.error_array.custom()
+    ph_error_array = variables.ph_error_array.custom()
 
     # set bins
 
     white_dictionary, bins_dictionaries = \
-        pipeline_variables.set_binning(input_data, white_lower_wavelength.value, white_upper_wavelength.value,
-                                       white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
-                                       bins_file.value)
+        variables.set_binning(input_data, white_lower_wavelength.value, white_upper_wavelength.value,
+                              white_ldc1.value, white_ldc2.value, white_ldc3.value, white_ldc4.value,
+                              bins_file.value)
 
     # iterate over the splitted data sub-sets
 
     final_light_curve = {}
 
-    for split_number, splitted_sub_set in enumerate(fits_list(input_data)):
+    for split_number, splitted_sub_set in enumerate(input_data.spectroscopic_images):
 
         if not plot:
-            print 'Splitting sample {0}:'.format(split_number + 1)
+            print('Splitting sample {0}:'.format(split_number + 1))
 
         light_curve = \
             photometry(input_data.copy_split(split_number),
@@ -631,7 +635,7 @@ def split_photometry(input_data, white_lower_wavelength=None, white_upper_wavele
                        extraction_gauss_sigma=extraction_gauss_sigma.value,
                        plot=False)[1]
 
-        final_light_curve[pipeline_variables.light_curve_split.keyword + str(split_number + 1)] = light_curve
+        final_light_curve[variables.light_curve_split.keyword + str(split_number + 1)] = light_curve
 
         if plot:
 
@@ -644,9 +648,9 @@ def split_photometry(input_data, white_lower_wavelength=None, white_upper_wavele
 
             plt.figure(1, figsize=(3 * plot_columns, 3 * plot_rows))
             plt.subplot(plot_rows, plot_columns, split_number + 1)
-            plt.title(r'$\mathrm{split \, ' + str(split_number + 1) + '}$', fontsize=20)
+            plt.title(r'{0}{1}{2}'.format('$\mathrm{split \, ', str(split_number + 1), '}$'), fontsize=20)
             if split_number + 1 != plot_columns * (plot_rows - 1) + 1:
-                plt.tick_params(labelleft='off', labelbottom='off')
+                plt.tick_params(labelleft=False, labelbottom=False)
 
             plt.imshow(fits[1].data, origin='lower', aspect='auto')
             plt.xlim(0, len(fits[1].data))
@@ -668,7 +672,7 @@ def split_photometry(input_data, white_lower_wavelength=None, white_upper_wavele
                               for ff in testx])
 
             plt.plot((testx + 25) / 10000.0, testy / 1000000.0, '-', lw=2,
-                     label=r'$\mathrm{split \, ' + str(split_number + 1) + '}$')
+                     label=r'{0}{1}{2}'.format('$\mathrm{split \, ', str(split_number + 1), '}$'))
 
             if split_number + 1 == total_plots:
 
@@ -778,10 +782,10 @@ def plot_photometry(dataset, lightcurve, directory):
     forward_colour = 'k'
     reverse_colour = 'r'
 
-    hjd_time = lightcurve[pipeline_variables.heliocentric_julian_date_array.keyword]
-    flux = lightcurve[pipeline_variables.white_dictionary.keyword][pipeline_variables.flux_array.keyword]
-    ssky = lightcurve[pipeline_variables.sky_background_level_array.keyword]
-    scan = lightcurve[pipeline_variables.spectrum_direction_array.keyword]
+    hjd_time = lightcurve[variables.heliocentric_julian_date_array.keyword]
+    flux = lightcurve[variables.white_dictionary.keyword][variables.flux_array.keyword]
+    ssky = lightcurve[variables.sky_background_level_array.keyword]
+    scan = lightcurve[variables.spectrum_direction_array.keyword]
     reverse = np.where(np.array(scan) < 0)
     forward = np.where(np.array(scan) > 0)
 
@@ -796,10 +800,10 @@ def plot_photometry(dataset, lightcurve, directory):
             figures = split_photometry(dataset, plot=True)[1]
             dataset.spectroscopic_images = original
         else:
-            figures = photometry(dataset.spectroscopic_images[forward][-1], plot=True)[1]
+            figures = photometry(dataset.spectroscopic_images[forward[0]][-1], plot=True)[1]
 
-        save_figure(directory, figure=figures[0], name='forward_extraction_aperture')
-        save_figure(directory, figure=figures[1], name='forward_stellar_spectrum')
+        functions.save_figure(directory, figure=figures[0], name='forward_extraction_aperture')
+        functions.save_figure(directory, figure=figures[1], name='forward_stellar_spectrum')
 
         plt.close('all')
 
@@ -812,10 +816,10 @@ def plot_photometry(dataset, lightcurve, directory):
             dataset.spectroscopic_images = test
             figures = split_photometry(dataset, plot=True)[1]
         else:
-            figures = photometry(dataset.spectroscopic_images[reverse][-1], plot=True)[1]
+            figures = photometry(dataset.spectroscopic_images[reverse[0]][-1], plot=True)[1]
 
-        save_figure(directory, figure=figures[0], name='reverse_extraction_aperture')
-        save_figure(directory, figure=figures[1], name='reverse_stellar_spectrum')
+        functions.save_figure(directory, figure=figures[0], name='reverse_extraction_aperture')
+        functions.save_figure(directory, figure=figures[1], name='reverse_stellar_spectrum')
 
         plt.close('all')
 
@@ -825,8 +829,8 @@ def plot_photometry(dataset, lightcurve, directory):
     plt.plot((np.array(hjd_time) - hjd_time[0])[reverse], np.array(flux)[reverse] / (10 ** 8),
              'o', c=reverse_colour, mec=reverse_colour, ms=3)
     plt.ylabel(r'$\mathrm{e}^{-} \, (\times 10^8)$', fontsize=15)
-    plt.tick_params(labelbottom='off')
-    adjust_ticks()
+    plt.tick_params(labelbottom=False)
+    functions.adjust_ticks()
     plt.subplot(2, 1, 2)
     plt.plot((np.array(hjd_time) - hjd_time[0])[forward], np.array(ssky)[forward],
              'o', c=forward_colour, mec=forward_colour, ms=3)
@@ -834,6 +838,6 @@ def plot_photometry(dataset, lightcurve, directory):
              'o', c=reverse_colour, mec=reverse_colour, ms=3)
     plt.xlabel(r'$\Delta t \, \mathrm{(days)}$', fontsize=15)
     plt.ylabel(r'$\mathrm{sky} \, \mathrm{ratio}$', fontsize=15)
-    adjust_ticks()
+    functions.adjust_ticks()
     plt.subplots_adjust(hspace=0)
-    save_figure(directory, name='raw_light_curve')
+    functions.save_figure(directory, name='raw_light_curve')
