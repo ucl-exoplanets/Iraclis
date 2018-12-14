@@ -1585,7 +1585,7 @@ def plot_fitting(dictionary, directory):
             a2.append(lightcurve[bin_name]['parameters']['ldc_2']['value'])
             a3.append(lightcurve[bin_name]['parameters']['ldc_3']['value'])
             a4.append(lightcurve[bin_name]['parameters']['ldc_4']['value'])
-            if np.isnan(lightcurve[bin_name]['parameters']['rp']['m_error']):
+            if not lightcurve[bin_name]['parameters']['rp']['m_error']:
                 rp.append(lightcurve[bin_name]['parameters']['fp']['value'])
                 rp_er.append(max(lightcurve[bin_name]['parameters']['fp']['m_error'],
                              lightcurve[bin_name]['parameters']['fp']['p_error']))

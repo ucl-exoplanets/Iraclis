@@ -150,9 +150,10 @@ class DataSet:
 
         for i in range(len(self.file_names)):
             functions.fits_like(self.spectroscopic_images[i]).writeto(
-                os.path.join(export_directory, self.file_names[i]))
+                os.path.join(export_directory, self.file_names[i]), output_verify='fix')
 
-        functions.fits_like(self.direct_image).writeto(os.path.join(export_directory, 'direct_image.fits'))
+        functions.fits_like(self.direct_image).writeto(
+            os.path.join(export_directory, 'direct_image.fits'), output_verify='fix')
 
         if export_pipeline_variables_file:
             variables.save(os.path.join(export_directory, export_pipeline_variables_file))

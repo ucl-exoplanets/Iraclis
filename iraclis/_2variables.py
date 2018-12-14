@@ -432,10 +432,9 @@ class Variables:
         self.mcmc_iterations = Variable('mcmc_iterations', 'MCMCI', 300000, int, 'u')
         self.mcmc_walkers = Variable('mcmc_walkers', 'MCMCW', 200, int, 'u')
         self.mcmc_burned_iterations = Variable('mcmc_burned_iterations', 'MCMCB', 200000, int, 'u')
-        self.spectral_mcmc_iterations = Variable('spectral_mcmc_iterations', 'SPMCMCI', 150000, int, 'u')
-        self.spectral_mcmc_walkers = Variable('spectral_mcmc_walkers', 'SPMCMCW', 50, int, 'u')
-        self.spectral_mcmc_burned_iterations = Variable(
-            'spectral_mcmc_burned_iterations', 'SPMCMCB', 50000, int, 'u')
+        self.spectral_mcmc_iterations = Variable('spectral_mcmc_iterations', 'SPMCMCI', 50000, int, 'u')
+        self.spectral_mcmc_walkers = Variable('spectral_mcmc_walkers', 'SPMCMCW', 100, int, 'u')
+        self.spectral_mcmc_burned_iterations = Variable('spectral_mcmc_burned_iterations', 'SPMCMCB', 20000, int, 'u')
 
     def from_parameters_file(self, parameters_file=None):
 
@@ -485,7 +484,7 @@ class Variables:
         elif grism.value == 'G102':
             if white_lower_wavelength == 'default':
                 white_lower_wavelength = 8000
-            if white_upper_wavelength.value == 'default':
+            if white_upper_wavelength == 'default':
                 white_upper_wavelength = 11200
 
         if os.path.isfile(os.path.abspath(bins_file)):
