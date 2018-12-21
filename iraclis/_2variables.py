@@ -436,11 +436,20 @@ class Variables:
         self.spectral_mcmc_walkers = Variable('spectral_mcmc_walkers', 'SPMCMCW', 100, int, 'u')
         self.spectral_mcmc_burned_iterations = Variable('spectral_mcmc_burned_iterations', 'SPMCMCB', 20000, int, 'u')
 
-    def from_parameters_file(self, parameters_file=None):
+    def from_parameters_file(self, parameters_file=None, data_directory=None):
+
+        # check user inputs
 
         variables.reset()
 
-        if parameters_file:
+        if parameters_file and data_directory:
+
+            raise IraclisInputError('You should give as input either a parameters file '
+                                    '(which includes a data directory path), '
+                                    'OR a data directory path '
+                                    '(if you want to run in default parameters).')
+
+        elif parameters_file:
 
             parameters_file = os.path.abspath(parameters_file)
             if not os.path.isfile(parameters_file):
@@ -462,6 +471,33 @@ class Variables:
                         if vars(self)[i].kind == 'u':
                             print('WARNING: Parameter not in file, setting {0}={1}'.format(
                                 i, vars(self)[i].default_value))
+
+        elif data_directory:
+
+            self.data_directory.set(data_directory)
+
+        else:
+
+            raise IraclisInputError('You should give as input either a parameters file '
+                                    '(which includes a data directory path), '
+                                    'OR a data directory path '
+                                    '(if you want to run in default parameters).')
+
+    def overwrite(self, procedure=None, par_string=None):
+
+        if procedure:
+            self.reduction.set(bool(int(procedure[0])))
+            self.splitting.set(bool(int(procedure[1])))
+            self.extraction.set(bool(int(procedure[2])))
+            self.splitting_extraction.set(bool(int(procedure[3])))
+            self.fitting_white.set(bool(int(procedure[4])))
+            self.fitting_spectrum.set(bool(int(procedure[5])))
+
+        if par_string:
+            for i in par_string.split(','):
+                if len(i.split('=')) > 0:
+                    if i.split('=')[0] in vars(self):
+                        vars(self)[i.split('=')[0]].set(i.split('=')[1])
 
     def set_binning(self, input_data, white_lower_wavelength, white_upper_wavelength, white_ldc1,
                     white_ldc2, white_ldc3, white_ldc4, bins_file):

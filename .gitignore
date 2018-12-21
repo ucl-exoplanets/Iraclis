@@ -3,3 +3,4 @@
 MANIFEST.in
 examples/iraclis_test_dataset_hatp26b/
 iraclis/*_local_*
+test/

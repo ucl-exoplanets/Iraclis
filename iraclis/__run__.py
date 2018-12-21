@@ -1,6 +1,7 @@
 """Usage: __run__.py -p PARFILE
-          __run__.py -d DATADIR [PROCEDURE] [RESOLUTION] [OUTPUT]
-          __run__.py -t
+          __run__.py -d DATADIR
+          __run__.py -D DATADIR [PROCEDURE] [PARSTRING]
+          __run__.py -T
 
 """
 
@@ -14,43 +15,15 @@ from .images3_photometry import *
 from .lightcurves1_fitting import *
 
 
-def process_visit(parameters_file=None, data_directory=None):
+def process_visit(parameters_file=None, data_directory=None, procedure=None, par_string=None):
 
-    if not parameters_file and not data_directory:
-        arguments = docopt.docopt(__doc__)
-        if arguments['-t']:
-            os.system(
-                "osascript -e 'tell application \"Terminal\" to do "
-                "script \"cd {0};cd ../examples;python test.py\"'".format(os.path.abspath(os.path.dirname(__file__))))
-            exit()
-        if arguments['-p']:
-            parameters_file = arguments['PARFILE']
-        variables.from_parameters_file(parameters_file)
-        if arguments['-d']:
-            if arguments['DATADIR']:
-                variables.data_directory.set(arguments['DATADIR'])
-            if arguments['PROCEDURE']:
-                variables.reduction.set(bool(int(arguments['PROCEDURE'][0])))
-                variables.splitting.set(bool(int(arguments['PROCEDURE'][1])))
-                variables.extraction.set(bool(int(arguments['PROCEDURE'][2])))
-                variables.splitting_extraction.set(bool(int(arguments['PROCEDURE'][3])))
-                variables.fitting_white.set(bool(int(arguments['PROCEDURE'][4])))
-                variables.fitting_spectrum.set(bool(int(arguments['PROCEDURE'][5])))
-            if arguments['RESOLUTION']:
-                if arguments['RESOLUTION'] == 'high':
-                    variables.bins_file.set('default_high')
-                elif arguments['RESOLUTION'] == 'low':
-                    variables.bins_file.set('default_low')
-                elif arguments['RESOLUTION'] == 'vlow':
-                    variables.bins_file.set('default_vlow')
-                else:
-                    raise IraclisInputError('Wrong default resolution given. Options are: high, low, vlow.')
-            if arguments['OUTPUT']:
-                variables.output_directory_copy.set(arguments['OUTPUT'])
-    else:
-        variables.from_parameters_file(parameters_file)
-        if data_directory:
-            variables.data_directory.set(data_directory)
+    # user inputs
+
+    variables.from_parameters_file(parameters_file, data_directory)
+
+    # for developers use only
+
+    variables.overwrite(procedure, par_string)
 
     # load the parameters file
 
@@ -337,6 +310,10 @@ def process_visit(parameters_file=None, data_directory=None):
     print('')
 
 
+def download_visit(vist):
+    pass
+
+
 def white_global_fit_detrended(list_of_files, output_directory,
                                method=False,
                                iterations=200000, walkers=200, burn=150000, precision=3,
@@ -512,5 +489,16 @@ def spectral_global_fit_detrended(list_of_files, lc_id, output_directory,
     mcmc.plot_detrended_models(os.path.join(output_directory, 'detrended_models.pdf'))
 
 
-if __name__ == '__main__':
-    process_visit()
+def console():
+
+    arguments = docopt.docopt(__doc__)
+
+    if arguments['-p'] or arguments['-d'] or arguments['-D']:
+        process_visit(arguments['PARFILE'], arguments['DATADIR'], arguments['PROCEDURE'], arguments['PARSTRING'])
+
+    # for developers use only
+
+    elif arguments['-T']:
+        os.system(
+            "osascript -e 'tell application \"Terminal\" to do "
+            "script \"cd {0};cd ../examples;python test.py\"'".format(os.path.abspath(os.path.dirname(__file__))))

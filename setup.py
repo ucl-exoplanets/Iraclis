@@ -7,7 +7,7 @@ name = 'iraclis'
 description = 'Analysis pipeline for HST/WFC3 spectroscopic observations of exoplanet transits and eclipses'
 url = 'https://github.com/ucl-exoplanets/Iraclis'
 install_requires = ['matplotlib', 'docopt', 'pylightcurve', 'astropy', 'scipy', 'ephem']
-entry_point = '__run__:process_visit'
+entry_point = '__run__:console'
 
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
