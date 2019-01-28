@@ -427,7 +427,7 @@ def spectral_global_fit_detrended(list_of_files, lc_id, output_directory,
 
     datasets = list(list_of_files)
     datasets.sort()
-    datasets = [pickle.load(open(ff))['lightcurves'][lc_id] for ff in datasets]
+    datasets = [pickle.load(open(ff, 'rb'))['lightcurves'][lc_id] for ff in datasets]
 
     data = []
     for dataset in datasets:

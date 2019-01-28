@@ -121,6 +121,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     flux_array = variables.flux_array.custom()
     error_array = variables.error_array.custom()
+    ph_error_array = variables.ph_error_array.custom()
     lower_wavelength = variables.lower_wavelength.custom()
     upper_wavelength = variables.upper_wavelength.custom()
     ldc1 = variables.ldc1.custom()
@@ -249,6 +250,12 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                     error_array.set(error)
                     error_array.to_dictionary(i)
 
+                    ph_error_array.from_dictionary(i)
+                    ph_error = ph_error_array.value
+                    ph_error[fr] = ph_error[fr] * fitfr(begnfr[0]) / fitfr(begnfr)
+                    ph_error_array.set(ph_error)
+                    ph_error_array.to_dictionary(i)
+
     # exclude orbits / points
 
     indices_to_remain = np.arange(len(heliocentric_julian_date_array.value))
@@ -294,6 +301,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         error_array.from_dictionary(i)
         error_array.set(error_array.value[indices_to_remain])
         error_array.to_dictionary(i)
+
+        ph_error_array.from_dictionary(i)
+        ph_error_array.set(ph_error_array.value[indices_to_remain])
+        ph_error_array.to_dictionary(i)
 
     # define hst orbital phases
 
@@ -376,6 +387,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             error_array.set(error_array.value[indices_to_remain])
             error_array.to_dictionary(i)
 
+            ph_error_array.from_dictionary(i)
+            ph_error_array.set(ph_error_array.value[indices_to_remain])
+            ph_error_array.to_dictionary(i)
+
         ophase = ophase[indices_to_remain]
         dphase = dphase[indices_to_remain]
         fphase = fphase[indices_to_remain]
@@ -401,6 +416,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             error_array.from_dictionary(i)
             error_array.set(error_array.value[indices_to_remain])
             error_array.to_dictionary(i)
+
+            ph_error_array.from_dictionary(i)
+            ph_error_array.set(ph_error_array.value[indices_to_remain])
+            ph_error_array.to_dictionary(i)
 
         ophase = ophase[indices_to_remain]
         dphase = dphase[indices_to_remain]
@@ -433,6 +452,12 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             error[fr] = error[fr] / shift
             error_array.set(error)
             error_array.to_dictionary(i)
+
+            ph_error_array.from_dictionary(i)
+            ph_error = ph_error_array.value
+            ph_error[fr] = ph_error[fr] / shift
+            ph_error_array.set(ph_error)
+            ph_error_array.to_dictionary(i)
 
     # set target
 
@@ -571,6 +596,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     data_white = flux_array.value
     error_array.from_dictionary(white_dictionary)
     data_white_error = error_array.value
+    ph_error_array.from_dictionary(white_dictionary)
+    data_white_ph_error = ph_error_array.value
     data_ophase = np.array(ophase)
     data_dphase = np.array(dphase)
     data_fphase = np.array(fphase)
@@ -595,8 +622,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits1.append(np.nan)
         limits2.append(np.nan)
     else:
-        limits1.append(np.median(data_white) / 10)
-        limits2.append(np.median(data_white) * 10)
+        limits1.append(np.median(data_white) / 10.0)
+        limits2.append(np.median(data_white) * 10.0)
 
     # reverse scans normalisation factors
     names.append('n_w_rev')
@@ -606,8 +633,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits1.append(np.nan)
         limits2.append(np.nan)
     else:
-        limits1.append(np.median(data_white) / 10)
-        limits2.append(np.median(data_white) * 10)
+        limits1.append(np.median(data_white) / 10.0)
+        limits2.append(np.median(data_white) * 10.0)
 
     # long term ramp - 1st order
     names.append('r_a1')
@@ -901,7 +928,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                                           'y_shift': data_y_shift,
                                           'y_shift_error': data_y_shift_error,
                                           'raw_lc': data_white,
-                                          'raw_lc_error': data_white_error
+                                          'raw_lc_error': data_white_error,
+                                          'raw_lc_ph_error': data_white_ph_error
                                           }
 
         del white_fit['input_series']
@@ -909,6 +937,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         model_systematics, model_curve = model(*mcmc.results['parameters_final'], independent=True)
         white_fit['output_time_series'] = {'phase': ((data_time - white_fit['parameters']['t_0']['value']) /
                                                      white_fit['parameters']['P']['value']),
+                                           'full_model': model_systematics * model_curve,
+                                           'full_residuals': data_white - model_systematics * model_curve,
                                            'systematics': model_systematics,
                                            'detrended_lc': data_white / model_systematics,
                                            'transit': model_curve,
@@ -916,6 +946,25 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                                            }
 
         del white_fit['output_series']
+
+        chis = np.round(
+            np.sum((white_fit['output_time_series']['full_residuals'] ** 2) / (
+                    white_fit['input_time_series']['raw_lc_error'] ** 2)), 1)
+        rchis = np.round(
+            np.sum((white_fit['output_time_series']['full_residuals'] ** 2) / (
+                    white_fit['input_time_series']['raw_lc_error'] ** 2)) / (
+                len(data_time) - len(white_fit['statistics']['corr_matrix'][0])), 2)
+        std = int(np.round(np.std(white_fit['output_time_series']['residuals']) * 1000000, 0))
+        rstd = np.round(np.std(white_fit['output_time_series']['full_residuals']) / (
+            np.mean([np.std(np.random.normal(0, white_fit['input_time_series']['raw_lc_ph_error']))
+                     for ff in range(1000)])), 2)
+        autocor = np.round(np.max(np.abs(white_fit['statistics']['res_autocorr'][1:3])), 2)
+        white_fit['res_statistics'] = {'chisqr': chis,
+                                       'rchisqr': rchis,
+                                       'stdppm': std,
+                                       'rstd': rstd,
+                                       'autocor': autocor
+                                       }
 
     else:
 
@@ -939,15 +988,19 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             model_white = fitting_results['lightcurves']['white']['output_time_series']['transit']
             flux_array.from_dictionary(white_dictionary)
             data_white = flux_array.value
-            error_array.from_dictionary(white_dictionary)
-            data_white_error = error_array.value
+            model_white = data_white / model_white
+            model_white = model_white / np.mean(model_white)
+            # error_array.from_dictionary(white_dictionary)
+            # data_white_error = error_array.value
             flux_array.from_dictionary(bins_dictionaries[j])
             data_bin = flux_array.value
             error_array.from_dictionary(bins_dictionaries[j])
             data_bin_error = error_array.value
-            data_relative = data_bin / data_white
-            data_relative_error = np.sqrt((((1.0 / data_white) ** 2) * (data_bin_error ** 2) +
-                                          ((data_bin / data_white / data_white) ** 2) * (data_white_error ** 2)))
+            ph_error_array.from_dictionary(bins_dictionaries[j])
+            data_bin_ph_error = ph_error_array.value
+            # data_relative = data_bin / data_white
+            # data_relative_error = np.sqrt((((1.0 / data_white) ** 2) * (data_bin_error ** 2) +
+            #                               ((data_bin / data_white / data_white) ** 2) * (data_white_error ** 2)))
 
             names = []
             print_names = []
@@ -958,24 +1011,24 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             # forward scans normalisation factors
             names.append('n_l_for')
             print_names.append('n_\lambda ^\mathrm{for}')
-            initial.append(1.0 / 20)
+            initial.append(np.median(data_bin))
             if (data_scan < 0).all():
                 limits1.append(np.nan)
                 limits2.append(np.nan)
             else:
-                limits1.append(0.0)
-                limits2.append(1.0)
+                limits1.append(np.median(data_bin) / 10.0)
+                limits2.append(np.median(data_bin) * 10.0)
 
             # reverse scans normalisation factors
             names.append('n_l_rev')
             print_names.append('n_\lambda ^\mathrm{rev}')
-            initial.append(1.0 / 20)
+            initial.append(np.median(data_bin))
             if (data_scan > 0).all():
                 limits1.append(np.nan)
                 limits2.append(np.nan)
             else:
-                limits1.append(0.0)
-                limits2.append(1.0)
+                limits1.append(np.median(data_bin) / 10.0)
+                limits2.append(np.median(data_bin) * 10.0)
 
             # long term ramp - 1st order
             names.append('r_a1')
@@ -1099,7 +1152,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
                 normalisation = np.where(data_scan > 0, model_norm_f, model_norm_r)
                 detrend1 = 1.0 - model_ramp_a1 * (data_time - model_mid_time)
-                detrend2 = 1.0 / np.array(model_white)
+                detrend2 = model_white
 
                 if observation_type == 'transit':
                     signal = plc.transit(method.value, [model_ldc1, model_ldc2, model_ldc3, model_ldc4],
@@ -1127,13 +1180,13 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
                     return model(*curve_fit_parameters)
 
-            popt, pcov = curve_fit(curve_fit_model, 1, data_relative,
+            popt, pcov = curve_fit(curve_fit_model, 1, data_bin,
                                    p0=np.array(initial)[curve_fit_fitted_parameters_indices])
 
-            data_relative_error *= (np.std(data_relative - curve_fit_model(1, *popt)) /
-                                    np.median(data_relative_error))
+            data_bin_error *= (np.std(data_bin - curve_fit_model(1, *popt)) /
+                               np.median(data_bin_error))
 
-            mcmc = plc.EmceeFitting([data_relative, data_relative_error], model, np.array(initial), np.array(limits1),
+            mcmc = plc.EmceeFitting([data_bin, data_bin_error], model, np.array(initial), np.array(limits1),
                                     np.array(limits2), spectral_mcmc_walkers.value, spectral_mcmc_iterations.value,
                                     spectral_mcmc_burned_iterations.value, names, print_names, counter=False)
 
@@ -1158,13 +1211,14 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
             spectral_fit['input_time_series'] = {'hjd': data_time,
                                                  'scan': data_scan,
-                                                 'white_raw_lc': data_white,
-                                                 'white_raw_lc_error': data_white_error,
-                                                 'white_model': model_white,
+                                                 # 'white_raw_lc': data_white,
+                                                 # 'white_raw_lc_error': data_white_error,
+                                                 # 'white_model': model_white,
                                                  'raw_lc': data_bin,
                                                  'raw_lc_error': data_bin_error,
-                                                 'relative_lc': data_relative,
-                                                 'relative_lc_error': data_relative_error
+                                                 'raw_lc_ph_error': data_bin_ph_error
+                                                 # 'relative_lc': data_relative,
+                                                 # 'relative_lc_error': data_relative_error
                                                  }
 
             del spectral_fit['input_series']
@@ -1172,13 +1226,39 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             model_systematics, model_curve = model(*mcmc.results['parameters_final'], independent=True)
             spectral_fit['output_time_series'] = {'phase': ((data_time - spectral_fit['parameters']['t_0']['value']) /
                                                             spectral_fit['parameters']['P']['value']),
+                                                  'full_model': model_systematics * model_curve,
+                                                  'full_residuals': data_bin - model_systematics * model_curve,
                                                   'systematics': model_systematics,
-                                                  'detrended_lc': data_relative / model_systematics,
+                                                  'detrended_lc': data_bin / model_systematics,
                                                   'transit': model_curve,
-                                                  'residuals': data_relative / model_systematics - model_curve
+                                                  'residuals': data_bin / model_systematics - model_curve
+                                                  #
+                                                  # 'systematics': model_systematics,
+                                                  # 'detrended_lc': data_relative / model_systematics,
+                                                  # 'transit': model_curve,
+                                                  # 'residuals': data_relative / model_systematics - model_curve
                                                   }
 
             del spectral_fit['output_series']
+
+            chis = np.round(
+                np.sum((spectral_fit['output_time_series']['full_residuals'] ** 2) / (
+                        spectral_fit['input_time_series']['raw_lc_error'] ** 2)), 1)
+            rchis = np.round(
+                np.sum((spectral_fit['output_time_series']['full_residuals'] ** 2) / (
+                        spectral_fit['input_time_series']['raw_lc_error'] ** 2)) / (
+                        len(data_time) - len(spectral_fit['statistics']['corr_matrix'][0])), 2)
+            std = int(np.round(np.std(spectral_fit['output_time_series']['residuals']) * 1000000, 0))
+            rstd = np.round(np.std(spectral_fit['output_time_series']['full_residuals']) / (
+                np.mean([np.std(np.random.normal(0, spectral_fit['input_time_series']['raw_lc_ph_error']))
+                         for ff in range(1000)])), 2)
+            autocor = np.round(np.max(np.abs(spectral_fit['statistics']['res_autocorr'][1:3])), 2)
+            spectral_fit['res_statistics'] = {'chisqr': chis,
+                                              'rchisqr': rchis,
+                                              'stdppm': std,
+                                              'rstd': rstd,
+                                              'autocor': autocor
+                                              }
 
             fitting_results['lightcurves']['bin_{0}'.format(str(j + 1).zfill(2))] = spectral_fit
 
@@ -1457,16 +1537,16 @@ def plot_fitting(dictionary, directory):
     def plot_fitting_all(light_curve_dic, export_file):
 
         dy = 0
-        fig = plt.figure(figsize=(10, 10))
+        fig = plt.figure(figsize=(12, 10))
         fig.set_tight_layout(False)
-        ax1 = plt.subplot(1, 4, 1)
-        ax2 = plt.subplot(1, 4, 2)
-        ax3 = plt.subplot(1, 4, 3)
-        ax4 = plt.subplot(1, 4, 4)
+        ax2 = plt.subplot(1, 3, 1)
+        ax3 = plt.subplot(1, 3, 2)
+        ax4 = plt.subplot(1, 3, 3)
 
         cmap = matplotlib.cm.get_cmap('rainbow')
 
         ii = 0
+        ax4xlim = 0
 
         for ii in range(len(light_curve_dic) - 1):
 
@@ -1475,18 +1555,21 @@ def plot_fitting(dictionary, directory):
             bin_lc = light_curve_dic[bin_name]
 
             wavelength_mean = bin_lc['wavelength']['lambda_mean']
-            wavelength_mean = 1.0 - (17000 - wavelength_mean) / (17000 - 11000)
+            wavelength_mean = 1.0 - (17000 - wavelength_mean) / (17000 - 7000)
             phase = np.array(bin_lc['output_time_series']['phase'])
             detrended_lc = np.array(bin_lc['output_time_series']['detrended_lc'])
             model_curve = np.array(bin_lc['output_time_series']['transit'])
             residuals = np.array(bin_lc['output_time_series']['residuals'])
-            raw = np.array(bin_lc['input_time_series']['raw_lc'])
             res_autocorr = np.array(bin_lc['statistics']['res_autocorr'])
 
-            if dy == 0:
-                dy = 50. * np.std(bin_lc['output_time_series']['residuals'])
+            chis = bin_lc['res_statistics']['chisqr']
+            rchis = bin_lc['res_statistics']['rchisqr']
+            std = bin_lc['res_statistics']['stdppm']
+            rstd = bin_lc['res_statistics']['rstd']
+            autocor = bin_lc['res_statistics']['autocor']
 
-            ax1.plot(phase, raw / raw[0] + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
+            if dy == 0:
+                dy = -8. * np.std(bin_lc['output_time_series']['residuals'])
 
             ax2.plot(phase, model_curve + ii * dy, c='k', ls='--', lw=0.5)
             ax2.plot(phase, detrended_lc + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
@@ -1495,46 +1578,49 @@ def plot_fitting(dictionary, directory):
             ax3.plot(phase, 1 + residuals + ii * dy, 'o', c=cmap(wavelength_mean), mew=0.1, ms=3)
 
             ax4.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
-            ax4.bar(np.arange(len(res_autocorr)), res_autocorr * (0.7 * dy), bottom=1 + ii * dy,
+            ax4.bar(np.arange(len(res_autocorr)), res_autocorr * (0.7 * -dy), bottom=1 + ii * dy,
                     linewidth=0.3, color=cmap(wavelength_mean))
+            ax4xlim = ax4.get_xlim()[1]
+            ax4.text(ax4xlim + 5, 1 + ii * dy, r'$\sigma$={0}, $\overline{1}$={2}, ${3}^2$={4}, '
+                                                     r'$\overline{3}^2$={5}, $R^2$={6}'.format(
+                std, '{\sigma}', rstd, '{\chi}', chis, rchis, autocor), va='center', ha='left')
 
         bin_lc = light_curve_dic['white']
-        ii += 2
+        ii += 1
         phase = np.array(bin_lc['output_time_series']['phase'])
         detrended_lc = np.array(bin_lc['output_time_series']['detrended_lc'])
         model_curve = np.array(bin_lc['output_time_series']['transit'])
         residuals = np.array(bin_lc['output_time_series']['residuals'])
-        raw = np.array(bin_lc['input_time_series']['raw_lc'])
         res_autocorr = np.array(bin_lc['statistics']['res_autocorr'])
 
-        ax1.plot(phase, raw / raw[0] + ii * dy, 'o', c='k', mew=0.1, ms=3)
-        x_max = max(np.abs(ax1.get_xlim()))
-        y_min, y_max = ax1.get_ylim()
+        chis = bin_lc['res_statistics']['chisqr']
+        rchis = bin_lc['res_statistics']['rchisqr']
+        std = bin_lc['res_statistics']['stdppm']
+        rstd = bin_lc['res_statistics']['rstd']
+        autocor = bin_lc['res_statistics']['autocor']
 
         ax2.plot(phase, model_curve + ii * dy, c='k', ls='--', lw=0.5)
         ax2.plot(phase, detrended_lc + ii * dy, 'o', c='k', mew=0.1, ms=3)
+
+        x_max = max(np.abs(ax2.get_xlim()))
+        y_min, y_max = ax2.get_ylim()
 
         ax3.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
         ax3.plot(phase, 1 + residuals + ii * dy, 'o', c='k', mew=0.1, ms=3)
 
         ax4.axhline(1 + ii * dy, c='k', ls='--', lw=0.5)
-        ax4.bar(np.arange(len(res_autocorr)), res_autocorr * (0.7 * dy), bottom=1 + ii * dy, linewidth=0.3, color='k')
+        ax4.bar(np.arange(len(res_autocorr)), res_autocorr * (0.7 * -dy), bottom=1 + ii * dy, linewidth=0.3, color='k')
+        ax4.text(ax4.get_xlim()[1], 1 + ii * dy, r'$\sigma$={0}, $\overline{1}$={2}, ${3}^2$={4}, '
+                                                 r'$\overline{3}^2$={5}, $R^2$={6}'.format(
+            std, '{\sigma}', rstd, '{\chi}', chis, rchis, autocor), va='center', ha='left')
 
-        ax1.set_title(r'$\mathrm{raw}$', fontsize=15)
-        ax1.set_ylabel(r'$\mathrm{norm.} \, \mathrm{flux}$', fontsize=15)
-
-        ax1.set_xlim(-x_max, x_max)
-        ax1.set_ylim(y_min, y_max)
-        ax1.set_xticklabels(ax1.get_xticks(), rotation=45, ha='right')
-        functions.adjust_ticks_ax(ax1)
-
+        ax2.set_ylabel(r'$\mathrm{norm.} \, \mathrm{flux}$', fontsize=15)
         ax2.set_title(r'$\mathrm{de-trended}$', fontsize=15)
         ax2.set_xlabel(r'$\mathrm{phase}$', fontsize=15)
 
         ax2.set_xlim(-x_max, x_max)
         ax2.set_ylim(y_min, y_max)
         ax2.set_xticklabels(ax2.get_xticks(), rotation=45, ha='right')
-        ax2.tick_params(labelleft=False)
         functions.adjust_ticks_ax(ax2)
 
         ax3.set_title(r'$\mathrm{residuals}$', fontsize=15)
@@ -1549,10 +1635,11 @@ def plot_fitting(dictionary, directory):
         ax4.set_xlabel(r'$\#$', fontsize=15)
 
         ax4.set_ylim(y_min, y_max)
-        ax4.set_xlim(-5, plt.xlim()[1])
+        ax4.set_xlim(-5, ax4xlim)
         ax4.set_xticklabels(ax4.get_xticks(), rotation=45, ha='right')
         ax4.tick_params(labelleft=False)
         functions.adjust_ticks_ax(ax4)
+        ax4.set_xlim(-5, ax4xlim)
 
         plt.subplots_adjust(wspace=0)
         functions.save_figure(directory, name=export_file)
@@ -1585,7 +1672,7 @@ def plot_fitting(dictionary, directory):
             a2.append(lightcurve[bin_name]['parameters']['ldc_2']['value'])
             a3.append(lightcurve[bin_name]['parameters']['ldc_3']['value'])
             a4.append(lightcurve[bin_name]['parameters']['ldc_4']['value'])
-            if not lightcurve[bin_name]['parameters']['rp']['m_error']:
+            if lightcurve[bin_name]['parameters']['rp']['m_error'] is None:
                 rp.append(lightcurve[bin_name]['parameters']['fp']['value'])
                 rp_er.append(max(lightcurve[bin_name]['parameters']['fp']['m_error'],
                              lightcurve[bin_name]['parameters']['fp']['p_error']))

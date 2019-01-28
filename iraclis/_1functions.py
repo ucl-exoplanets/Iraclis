@@ -17,7 +17,7 @@ class Functions:
 
     @staticmethod
     def save_dict(dict_data, file_path):
-        pickle.dump(dict_data, open(file_path, 'wb'))
+        pickle.dump(dict_data, open(file_path, 'wb'), protocol=2)
 
     @staticmethod
     def sci(hdulist):

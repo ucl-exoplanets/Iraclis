@@ -892,10 +892,10 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
             y_flag = []
 
             for i in range(1, int(1 + cr_neighbours.value / 2)):
-                x_flag.append(frame - np.roll(frame, i, 1))
-                x_flag.append(frame - np.roll(frame, -i, 1))
-                y_flag.append(frame - np.roll(frame, i, 0))
-                y_flag.append(frame - np.roll(frame, -i, 0))
+                x_flag.append(np.abs(frame - np.roll(frame, i, 1)))
+                x_flag.append(np.abs(frame - np.roll(frame, -i, 1)))
+                y_flag.append(np.abs(frame - np.roll(frame, i, 0)))
+                y_flag.append(np.abs(frame - np.roll(frame, -i, 0)))
 
             x_flag = np.median(x_flag, 0)
             y_flag = np.median(y_flag, 0)
