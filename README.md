@@ -294,7 +294,7 @@ the spectral light-curve. Below, you can find the description of such a file (th
 
 #### Testing the code
 
-In the examples you will find a short python script (test.py) that downloads and analysis a test dataset from the MAST 
+In the examples you will find a short python script that downloads a test dataset from the MAST 
 archive. There, you can also find the parameters file and the bins file described above. The test dataset is a transit 
 of HATP-26 b from the observing proposal 14260 (PI: Deming Drake). 
 
