@@ -100,4 +100,3 @@ if not os.path.isdir(os.path.join('iraclis_test_dataset_hatp26b', 'raw_data')):
             urlretrieve('https://mast.stsci.edu/portal/Download/file/HST/product/{0}'.format(
                 dataset_file), os.path.join('iraclis_test_dataset_hatp26b', dataset_file))
 
-iraclis.process_visit('iraclis_test_dataset_hatp26b_parameters.txt')
