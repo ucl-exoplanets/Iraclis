@@ -5,11 +5,11 @@ output_directory_copy              False
 
 reduction                          True
 # True/False
-splitting                          True
+splitting                          False
 # True/False
-extraction                         False
+extraction                         True
 # True/False
-splitting_extraction               True
+splitting_extraction               False
 # True/False
 fitting_white                      True
 # True/False
@@ -26,7 +26,7 @@ aperture_upper_extend              20.0
 # number
 extraction_method                  gauss
 # gauss/integral
-extraction_gauss_sigma             47
+extraction_gauss_sigma             47.0
 # number
 
 method                             claret
@@ -92,11 +92,11 @@ exclude_final_orbits               0
 exclude_initial_orbit_points       0
 # number
 
-mcmc_iterations                    300000
+mcmc_iterations                    150000
 # number
 mcmc_walkers                       200
 # number
-mcmc_burned_iterations             150000
+mcmc_burned_iterations             50000
 # number
 spectral_mcmc_iterations           50000
 # number
