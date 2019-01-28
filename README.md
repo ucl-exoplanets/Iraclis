@@ -1,6 +1,6 @@
 # Iraclis
 
-![alt text](https://github.com/ucl-exoplanets/Iraclis/blob/master/logo.jpg)
+<img src="https://github.com/ucl-exoplanets/Iraclis/blob/master/logo.jpgg" width="20%">
 
 Analysis pipeline for **HST/WFC3** spectroscopic observations of exoplanet transits and eclipses
 
