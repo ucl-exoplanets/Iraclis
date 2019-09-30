@@ -148,8 +148,8 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
             for i in range(len(raw_data_set.spectroscopic_images)):
 
-                frame = functions.fits_like(data_set.spectroscopic_images[i])
-                frame2 = functions.fits_like(raw_data_set.spectroscopic_images[i])
+                frame = plc.copy_fits(data_set.spectroscopic_images[i])
+                frame2 = plc.copy_fits(raw_data_set.spectroscopic_images[i])
                 new_frame = [pf.PrimaryHDU(header=frame[0].header, data=frame[0].data),
                              pf.ImageHDU(header=frame2[1 + sample * 5].header, data=frame2[1 + sample * 5].data),
                              pf.ImageHDU(header=frame2[2 + sample * 5].header, data=frame2[2 + sample * 5].data),
@@ -245,7 +245,7 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
         # save extraction results
 
         print('Saving extracted light-curves in {} ...'.format(str(os.sep).join(lc_file.split(os.sep)[-2:])))
-        functions.save_dict(light_curve, lc_file)
+        plc.save_dict(light_curve, lc_file)
 
         # plot extraction diagnostics and results
 
@@ -260,11 +260,11 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
     if variables.fitting_white.value:
 
-        light_curve = functions.open_dict(lc_file)
+        light_curve = plc.open_dict(lc_file)
         light_curve = fitting(light_curve, fitting_spectrum=False)
 
         print('Saving fitting results in {} ...'.format(str(os.sep).join(fit_file.split(os.sep)[-2:])))
-        functions.save_dict(light_curve, fit_file)
+        plc.save_dict(light_curve, fit_file)
 
         print('Saving fitting plots in {} ...'.format(os.path.split(fitting_figures_directory)[1]))
         plot_fitting(light_curve, fitting_figures_directory)
@@ -273,13 +273,13 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
     if variables.fitting_spectrum.value:
 
-        light_curve = functions.open_dict(lc_file)
-        fitted_white_light_curve = functions.open_dict(fit_file)
+        light_curve = plc.open_dict(lc_file)
+        fitted_white_light_curve = plc.open_dict(fit_file)
         light_curve = fitting(light_curve, fitted_white_light_curve=fitted_white_light_curve,
                               fitting_spectrum=variables.fitting_spectrum.value)
 
         print('Saving fitting results in {} ...'.format(str(os.sep).join(fit_file.split(os.sep)[-2:])))
-        functions.save_dict(light_curve, fit_file)
+        plc.save_dict(light_curve, fit_file)
 
         print('Saving fitting plots in {} ...'.format(os.path.split(fitting_figures_directory)[1]))
         plot_fitting(light_curve, fitting_figures_directory)
@@ -499,6 +499,4 @@ def console():
     # for developers use only
 
     elif arguments['-T']:
-        os.system(
-            "osascript -e 'tell application \"Terminal\" to do "
-            "script \"cd {0};cd ../examples;python test.py\"'".format(os.path.abspath(os.path.dirname(__file__))))
+        os.system("cd {0};python __test__.py".format(os.path.abspath(os.path.dirname(__file__))))

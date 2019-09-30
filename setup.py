@@ -6,7 +6,7 @@ import glob
 name = 'iraclis'
 description = 'Analysis pipeline for HST/WFC3 spectroscopic observations of exoplanet transits and eclipses'
 url = 'https://github.com/ucl-exoplanets/Iraclis'
-install_requires = ['matplotlib', 'docopt', 'pylightcurve', 'astropy', 'scipy', 'ephem']
+install_requires = ['docopt', 'pylightcurve>=2.3.2']
 entry_point = '__run__:console'
 
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
@@ -25,6 +25,8 @@ for x in glob.glob(os.path.join(name, '*')):
 
 files_to_include.append('README.md')
 files_to_include.append('LICENSE')
+files_to_include.append('readme.md')
+files_to_include.append('licence')
 
 w = open('MANIFEST.in', 'w')
 for i in subdirs_to_include:
@@ -35,8 +37,12 @@ for i in files_to_include:
 
 w.close()
 
-with codecs.open('README.md', encoding='utf-8') as f:
-    long_description = f.read()
+try:
+    with codecs.open('README.md', encoding='utf-8') as f:
+        long_description = f.read()
+except:
+    with codecs.open('readme.md', encoding='utf-8') as f:
+        long_description = f.read()
 
 version = ' '
 for i in open(os.path.join(name, '__init__.py')):

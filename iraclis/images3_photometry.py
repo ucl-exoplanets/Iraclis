@@ -351,8 +351,8 @@ def get_flux_gauss(fits, lower_wavelength, upper_wavelength,
         y1 = - scan_length - max(aperture_lower_extend, aperture_upper_extend)
         y2 = - min(aperture_lower_extend, aperture_upper_extend)
 
-    science_frame = np.array(fits[functions.sci(fits)[0]].data)
-    error_frame = np.array(fits[functions.err(fits)[0]].data)
+    science_frame = np.array(fits[plc.fits_sci(fits)[0]].data)
+    error_frame = np.array(fits[plc.fits_err(fits)[0]].data)
     ph_error_frame = np.sqrt(np.abs(science_frame))
 
     scan_weight = (scipy.special.erf((scan_frame - y1) / ((sigma / 45.) * np.sqrt(2.0))) -
@@ -379,8 +379,6 @@ def get_flux_gauss(fits, lower_wavelength, upper_wavelength,
 def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=None, bins_file=None,
                aperture_lower_extend=None, aperture_upper_extend=None, extraction_method=None,
                extraction_gauss_sigma=None, plot=False):
-
-    input_data = DataSet(input_data)
 
     # load pipeline and calibration variables to be used
 
@@ -483,7 +481,7 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
         spectrum_direction.from_fits(fits)
         spectrum_direction_array.set(np.append(spectrum_direction_array.value, spectrum_direction.value))
 
-        sky_background_level.from_fits(fits, position=functions.sci(fits)[0])
+        sky_background_level.from_fits(fits, position=plc.fits_sci(fits)[0])
         sky_background_level_array.set(np.append(sky_background_level_array.value, sky_background_level.value))
 
         y_star.from_fits(fits)
@@ -569,8 +567,6 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
 def split_photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=None, bins_file=None,
                aperture_lower_extend=None, aperture_upper_extend=None, extraction_method=None,
                extraction_gauss_sigma=None, plot=False):
-
-    input_data = DataSet(input_data)
 
     # load pipeline and calibration variables to be used
 
@@ -800,10 +796,11 @@ def plot_photometry(dataset, lightcurve, directory):
             figures = split_photometry(dataset, plot=True)[1]
             dataset.spectroscopic_images = original
         else:
-            figures = photometry(dataset.spectroscopic_images[forward[0]][-1], plot=True)[1]
+            dataset.spectroscopic_images = [dataset.spectroscopic_images[forward[0]][-1]]
+            figures = photometry(dataset, plot=True)[1]
 
-        functions.save_figure(directory, figure=figures[0], name='forward_extraction_aperture')
-        functions.save_figure(directory, figure=figures[1], name='forward_stellar_spectrum')
+        plc.save_figure(directory, figure=figures[0], name='forward_extraction_aperture')
+        plc.save_figure(directory, figure=figures[1], name='forward_stellar_spectrum')
 
         plt.close('all')
 
@@ -816,10 +813,11 @@ def plot_photometry(dataset, lightcurve, directory):
             dataset.spectroscopic_images = test
             figures = split_photometry(dataset, plot=True)[1]
         else:
-            figures = photometry(dataset.spectroscopic_images[reverse[0]][-1], plot=True)[1]
+            dataset.spectroscopic_images = [dataset.spectroscopic_images[reverse[0]][-1]]
+            figures = photometry(dataset, plot=True)[1]
 
-        functions.save_figure(directory, figure=figures[0], name='reverse_extraction_aperture')
-        functions.save_figure(directory, figure=figures[1], name='reverse_stellar_spectrum')
+        plc.save_figure(directory, figure=figures[0], name='reverse_extraction_aperture')
+        plc.save_figure(directory, figure=figures[1], name='reverse_stellar_spectrum')
 
         plt.close('all')
 
@@ -830,7 +828,7 @@ def plot_photometry(dataset, lightcurve, directory):
              'o', c=reverse_colour, mec=reverse_colour, ms=3)
     plt.ylabel(r'$\mathrm{e}^{-} \, (\times 10^8)$', fontsize=15)
     plt.tick_params(labelbottom=False)
-    functions.adjust_ticks()
+    plc.adjust_ticks()
     plt.subplot(2, 1, 2)
     plt.plot((np.array(hjd_time) - hjd_time[0])[forward], np.array(ssky)[forward],
              'o', c=forward_colour, mec=forward_colour, ms=3)
@@ -838,6 +836,6 @@ def plot_photometry(dataset, lightcurve, directory):
              'o', c=reverse_colour, mec=reverse_colour, ms=3)
     plt.xlabel(r'$\Delta t \, \mathrm{(days)}$', fontsize=15)
     plt.ylabel(r'$\mathrm{sky} \, \mathrm{ratio}$', fontsize=15)
-    functions.adjust_ticks()
+    plc.adjust_ticks()
     plt.subplots_adjust(hspace=0)
-    functions.save_figure(directory, name='raw_light_curve')
+    plc.save_figure(directory, name='raw_light_curve')

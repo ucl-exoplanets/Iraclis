@@ -90,13 +90,15 @@ dataset_files = [
     'icy021k4q_raw.fits',
 ]
 
-if not os.path.isdir('iraclis_test_dataset_hatp26b'):
-    os.mkdir('iraclis_test_dataset_hatp26b')
+destination = os.path.join(os.path.expanduser('~'), 'iraclis_test_dataset_hatp26b')
+
+if not os.path.isdir(destination):
+    os.mkdir(destination)
 
 if not os.path.isdir(os.path.join('iraclis_test_dataset_hatp26b', 'raw_data')):
     for num, dataset_file in enumerate(dataset_files):
         print('{0}/{1}: '.format(num + 1, len(dataset_files)), dataset_file)
-        if not os.path.isfile(os.path.join('iraclis_test_dataset_hatp26b', dataset_file)):
+        if not os.path.isfile(os.path.join(destination, dataset_file)):
             urlretrieve('https://mast.stsci.edu/portal/Download/file/HST/product/{0}'.format(
-                dataset_file), os.path.join('iraclis_test_dataset_hatp26b', dataset_file))
+                dataset_file), os.path.join(destination, dataset_file))
 

@@ -7,58 +7,46 @@ from ._2variables import *
 
 class DataSet:
 
-    def __init__(self, input_data=None):
+    def __init__(self, input_data, direct_image=None):
 
-        if input_data is None:
+        if direct_image is not None:
+            if isinstance(direct_image, str):
+                if os.path.isfile(direct_image):
+                    direct_image = pf.open(direct_image)
+                else:
+                    raise IraclisFileError('No such file {0}'.format(input_data))
+            else:
+                raise IraclisFileError('Please give a file name for the direct image or leave it empty.')
 
-            self.file_names = []
-            self.spectroscopic_images = []
-            self.direct_image = []
-            self.splitted = False
-            self._data_set_directory_path = None
+        if not isinstance(input_data, str):
+            raise IraclisFileError('Please give a file or directory name for the input data.')
 
-        elif isinstance(input_data, DataSet):
-            self.file_names = input_data.file_names
-            self.spectroscopic_images = input_data.spectroscopic_images
-            self.direct_image = input_data.direct_image
-            self.splitted = input_data.splitted
-            self._data_set_directory_path = input_data._data_set_directory_path
-
-        elif isinstance(input_data, pf.HDUList):
+        elif os.path.isfile(input_data):
 
             self.file_names = []
-            self.spectroscopic_images = [input_data]
-            self.direct_image = []
-            self.splitted = False
-            self._data_set_directory_path = None
-
-            if self.spectroscopic_images[0][0].header[variables.observation_type.keyword] != 'SPECTROSCOPIC':
-                raise IraclisFileError('A single direct image is not s valid input dataset.')
-
-        elif isinstance(input_data, str) and os.path.isfile(input_data):
-
-            self.file_names = [input_data]
             self.spectroscopic_images = [pf.open(input_data)]
-            self.direct_image = []
+            if not direct_image:
+                self.direct_image = None
+            else:
+                self.direct_image = direct_image
             self.splitted = False
             self._data_set_directory_path = None
 
             if self.spectroscopic_images[0][0].header[variables.observation_type.keyword] != 'SPECTROSCOPIC':
                 raise IraclisFileError('A single direct image is not s valid input dataset.')
 
-        elif (isinstance(input_data, str) and os.path.isdir(input_data) and
-              len(glob.glob(os.path.join(input_data, '*', ''))) == 0):
+        elif os.path.isdir(input_data) and len(glob.glob(os.path.join(input_data, '*', ''))) == 0:
 
             nsamp = []
             final_list = []
-            direct_image = False
+            direct_image = None
 
             files = sorted(glob.glob(os.path.join(input_data, '*.fits')))
             for i in files:
                 with pf.open(i) as j:
                     if j[0].header[variables.observation_type.keyword] == 'SPECTROSCOPIC':
                         final_list.append([j[0].header[variables.exposure_start.keyword],
-                                           os.path.split(i)[1], functions.fits_like(j)])
+                                           os.path.split(i)[1], plc.copy_fits(j)])
                         nsamp.append(j[0].header[variables.total_samples.keyword])
                     elif not direct_image:
                         direct_image = pf.open(i, mode='update')
@@ -84,8 +72,7 @@ class DataSet:
             self.splitted = False
             self._data_set_directory_path = input_data
 
-        elif (isinstance(input_data, str) and os.path.isdir(input_data) and
-              len(glob.glob(os.path.join(input_data, '*', ''))) > 0):
+        elif os.path.isdir(input_data) and len(glob.glob(os.path.join(input_data, '*', ''))) > 0:
 
             self.file_names = []
             self.spectroscopic_images = []
@@ -97,14 +84,14 @@ class DataSet:
 
                 nsamp = []
                 final_list = []
-                direct_image = False
+                direct_image = None
 
                 files = sorted(glob.glob(os.path.join(input_data, '*.fits')))
                 for i in files:
                     with pf.open(i) as j:
                         if j[0].header[variables.observation_type.keyword] == 'SPECTROSCOPIC':
                             final_list.append([j[0].header[variables.exposure_start.keyword],
-                                               os.path.split(i)[1], functions.fits_like(j)])
+                                               os.path.split(i)[1], plc.copy_fits(j)])
                             nsamp.append(j[0].header[variables.total_samples.keyword])
                         elif not direct_image:
                             direct_image = pf.open(i, mode='update')
@@ -131,6 +118,9 @@ class DataSet:
         else:
             raise IraclisFileError('No such file or directory: {0}'.format(input_data))
 
+        if not self.direct_image:
+            raise IraclisFileError('A direct image is necessary.')
+
     def save(self, export_directory, arrange=True, export_pipeline_variables_file='variables.txt'):
 
         if os.path.isdir(export_directory):
@@ -149,10 +139,10 @@ class DataSet:
                     self.file_names[i] = '{0}_{1}_{2}'.format(date, obs_time, os.path.split(self.file_names[i])[1])
 
         for i in range(len(self.file_names)):
-            functions.fits_like(self.spectroscopic_images[i]).writeto(
+            plc.copy_fits(self.spectroscopic_images[i]).writeto(
                 os.path.join(export_directory, self.file_names[i]), output_verify='fix')
 
-        functions.fits_like(self.direct_image).writeto(
+        plc.copy_fits(self.direct_image).writeto(
             os.path.join(export_directory, 'direct_image.fits'), output_verify='fix')
 
         if export_pipeline_variables_file:

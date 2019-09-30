@@ -50,8 +50,6 @@ def timing(input_data):
 
     """
 
-    input_data = DataSet(input_data)
-
     # load pipeline and calibration variables to be used
 
     exposure_start = variables.exposure_start.custom()
@@ -75,23 +73,10 @@ def timing(input_data):
         ra_target.from_fits(fits)
         dec_target.from_fits(fits)
 
-        # calculate the julian date of the mid-exposure
+        # calculate the heliocentric julian date of the mid-exposure
 
-        julian_date = 0.5 * (exposure_start.value + exposure_end.value) + 2400000.5
-
-        # calculate the sun RA and DEC at the julian date of the mid-exposure
-
-        sun = ephem.Sun()
-        sun.compute(ephem.date(julian_date - 2415020.0))  # the ephem package uses dublin julian date (-2415020 days)
-        ra_sun_jd, dec_sun_jd = float(sun.ra), float(sun.dec)
-
-        # calculate (and save in the data file) the heliocentric julian date of the mid-exposure, in the data files the
-        # target RA and DEC are provided in degrees, hence we need to multiply them by np.pi / 180
-
-        heliocentric_julian_date.to_fits(fits, value=(julian_date - ((149597870700.0 / 25902068371200.0) *
-                                                      (np.sin(dec_target.value * np.pi / 180) * np.sin(dec_sun_jd) +
-                                                       np.cos(dec_target.value * np.pi / 180) * np.cos(dec_sun_jd) *
-                                                       np.cos(ra_target.value * np.pi / 180 - ra_sun_jd)))))
+        heliocentric_julian_date.to_fits(fits, value=plc.mjd_to_hjd(ra_target.value, dec_target.value,
+                                                                    0.5 * (exposure_start.value + exposure_end.value)))
 
         # update counter
 
@@ -151,8 +136,6 @@ def bias(input_data):
 
     """
 
-    input_data = DataSet(input_data)
-
     # load pipeline and calibration variables to be used
 
     zero_read_frame = variables.zero_read.custom()
@@ -184,8 +167,8 @@ def bias(input_data):
             # locate and rename the zero-read and the zero-read error-array
             # (first non-destructive read - i.e. last in the list of scientific frames)
 
-            fits[functions.sci(fits)[-1]].name = zero_read_frame.keyword
-            fits[functions.err(fits)[-1]].name = zero_read_error_frame.keyword
+            fits[plc.fits_sci(fits)[-1]].name = zero_read_frame.keyword
+            fits[plc.fits_err(fits)[-1]].name = zero_read_error_frame.keyword
 
             # get the zero-read and the zero-read error-array from the fits file
 
@@ -194,7 +177,7 @@ def bias(input_data):
 
         # iterate over the NDRs
 
-        for i, j in functions.sci_err(fits):
+        for i, j in plc.fits_sci_err(fits):
 
             # get the NDR from the fits file
 
@@ -292,8 +275,6 @@ def linearity(input_data):
 
     """
 
-    input_data = DataSet(input_data)
-
     # load pipeline and calibration variables to be used
 
     zero_read = variables.zero_read.custom()
@@ -332,8 +313,8 @@ def linearity(input_data):
             # locate and rename the zero-read and the zero-read error-array
             # (first non-destructive read - i.e. last in the list of scientific frames)
 
-            fits[functions.sci(fits)[-1]].name = zero_read.keyword
-            fits[functions.err(fits)[-1]].name = zero_read_error.keyword
+            fits[plc.fits_sci(fits)[-1]].name = zero_read.keyword
+            fits[plc.fits_err(fits)[-1]].name = zero_read_error.keyword
 
             # get the zero-read and the zero-read error-array from the fits file
 
@@ -353,7 +334,7 @@ def linearity(input_data):
 
         # iterate over the NDRs
 
-        for i, j in functions.sci_err(fits):
+        for i, j in plc.fits_sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -422,8 +403,6 @@ def dark(input_data, splitting=False):
 
     1) Corrects each NDR for the dark current.
 
-
-
     by subtracting from it the suitable dark current frame
     included in the suitable dark calibration file.
     This frame is selected in order to have the same sub-array, sampling sequence and sample number.
@@ -439,14 +418,15 @@ def dark(input_data, splitting=False):
     input_data : HDUList or DataSet object
         input data, either a single image or a complete data set
 
+    splitting : bool
+        whether to apply dark current correction on splitted data or not
+
     Returns
     -------
     input_data : HDUList or DataSet object
         updated version of the input_data object, corrected for dark current
 
     """
-
-    input_data = DataSet(input_data)
 
     # load pipeline and calibration variables to be used
 
@@ -462,7 +442,7 @@ def dark(input_data, splitting=False):
 
         # iterate over the NDRs
 
-        for i, j in functions.sci_err(fits):
+        for i, j in plc.fits_sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -537,8 +517,6 @@ def gain(input_data):
 
     """
 
-    input_data = DataSet(input_data)
-
     # load pipeline and calibration variables to be used
 
     gain_profile = calibrations.gain_profile.match(input_data)
@@ -554,7 +532,7 @@ def gain(input_data):
 
         # iterate over the NDRs
 
-        for i, j in functions.sci_err(fits):
+        for i, j in plc.fits_sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -613,14 +591,15 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
     sky_detection_limit : float
         detection threshold for the non-illuminated pixels
 
+    splitting : bool
+        whether to apply dark current correction on splitted data or not
+
     Returns
     -------
     input_data : HDUList or DataSet object
         updated version of the input_data object, corrected for sky background
 
     """
-
-    input_data = DataSet(input_data)
 
     # load pipeline and calibration variables to be used
 
@@ -647,12 +626,12 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
 
             # calculate all the differential combinations of the NDRs (the first read is included as it is)
 
-            differential_science = [fits[functions.sci(fits)[-1]].data]
+            differential_science = [fits[plc.fits_sci(fits)[-1]].data]
 
-            for i in range(len(functions.sci(fits))):
-                for j in range(i + 1, len(functions.sci(fits))):
-                    differential_science.append(np.array(fits[functions.sci(fits)[i]].data -
-                                                         fits[functions.sci(fits)[j]].data))
+            for i in range(len(plc.fits_sci(fits))):
+                for j in range(i + 1, len(plc.fits_sci(fits))):
+                    differential_science.append(np.array(fits[plc.fits_sci(fits)[i]].data -
+                                                         fits[plc.fits_sci(fits)[j]].data))
 
             # apply an eight-pixel moving average smoothing on the differential combinations
 
@@ -672,7 +651,11 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
                 # calculate the distribution of the flux and fit a gaussian, do not consider pixels at the edges
 
                 frame = differential_science[i][10:-10, 10:-10]
-                frame_mean, frame_std = tools.distribution(frame.flatten(), xstep=10.0)[-1][-2:]
+                # frame_mean, frame_std = tools.distribution(frame.flatten(), xstep=10.0)[-1][-2:]
+                # print(frame_mean, frame_std)
+                frame_mean, frame_std = plc.fit_one_d_distribution_gaussian(frame, step=10.0)[2][-2:]
+                frame_std = np.abs(frame_std)
+                # print(frame_mean, frame_std)
 
                 # find the non-illuminated pixels and save them
 
@@ -701,7 +684,7 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
 
         # iterate over the NDRs
 
-        for i, j in functions.sci_err(fits):
+        for i, j in plc.fits_sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -762,8 +745,6 @@ def flat(input_data):
 
     """
 
-    input_data = DataSet(input_data)
-
     # load pipeline and calibration variables to be used
 
     normalised_wavelength_frame = variables.normalised_wavelength_frame
@@ -799,7 +780,7 @@ def flat(input_data):
 
         # iterate over the NDRs
 
-        for i, j in functions.sci_err(fits):
+        for i, j in plc.fits_sci_err(fits):
 
             # get the NDR and its error-array from the data file
 
@@ -860,8 +841,6 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
         updated version of the input_data object, corrected for bad pixels and cosmic rays
 
     """
-
-    input_data = DataSet(input_data)
 
     # load pipeline and calibration variables to be used
 
@@ -941,7 +920,7 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
         # scan or no scan
 
         data = np.sum(fits[1].data, 0)
-        model = tools.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
+        model = plc.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
         dx = np.argmax(np.convolve(data, model)) - np.argmax(np.convolve(model, model))
         x_lim1, x_lim2 = int(len(data) / 2 + dx - 55), int(len(data) / 2 + dx + 55)
 
@@ -955,20 +934,20 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
             y2 = float(np.median(np.argmin(data[2:, x_lim1:x_lim2] - data[:-2, x_lim1:x_lim2], 0)))
         final_y_lim1, final_y_lim2 = np.sort([int(round(y1)), int(round(y2))])
 
-        if abs(final_y_lim1 - final_y_lim2) > 1:
+        if abs(final_y_lim1 - final_y_lim2) > 5:
             final_scan = True
         else:
             final_scan = False
 
         # correct each read for the bad pixels and the cosmic rays
 
-        if len(functions.sci_err(fits)) == 1:
-            corr = [functions.sci_err(fits)[0]]
+        if len(plc.fits_sci_err(fits)) == 1:
+            corr = [plc.fits_sci_err(fits)[0]]
         else:
             if use_bpcr_fast_mode.value:
-                corr = [functions.sci_err(fits)[0], functions.sci_err(fits)[-1]]
+                corr = [plc.fits_sci_err(fits)[0], plc.fits_sci_err(fits)[-1]]
             else:
-                corr = functions.sci_err(fits)
+                corr = plc.fits_sci_err(fits)
 
         for i, j in corr:
 

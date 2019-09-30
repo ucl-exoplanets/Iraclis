@@ -30,10 +30,10 @@ def get_position_diagnostics(fits):
 
     # set the reference pixels 0 so not to cause problems later
 
-    first_read_index = functions.sci(fits)[-1]
+    first_read_index = plc.fits_sci(fits)[-1]
 
     data = np.sum(fits[1].data, 0)
-    model = tools.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
+    model = plc.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
     dx = np.argmax(np.convolve(data, model)) - np.argmax(np.convolve(model, model))
     x_lim1, x_lim2 = int(len(data) / 2 + dx - 55), int(len(data) / 2 + dx + 55)
 
@@ -183,7 +183,7 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
                   'IR-UVIS-CENTER': 0.135357, 'IR-UVIS': 0.135666, 'IR-UVIS-FIX': 0.135666, 'GRISM1024': 0.135603,
                   'GRISM512': 0.135504, 'GRISM256': 0.135508, 'GRISM128': 0.135474, 'GRISM64': 0.135474}
 
-    x0 = tools.fit_2d_gauss(direct_image[1].data)[0]
+    x0 = plc.fit_two_d_gaussian(direct_image[1].data, positive=True, symmetric=True, window=50, sigma=1)[0][2]
 
     grism.from_fits(direct_image)
 
@@ -228,13 +228,15 @@ def get_absolute_y_star(fits, target_y_offset, use_standard_flat):
     trace_bt1 = calibrations.trace_bt1.match(fits)
     trace_bt2 = calibrations.trace_bt2.match(fits)
 
-    data = get_standard_flat(fits, functions.sci(fits)[-int(spectrum_scan)], use_standard_flat)
+    data = get_standard_flat(fits, plc.fits_sci(fits)[-int(spectrum_scan)], use_standard_flat)
     data = np.swapaxes(data[max(5, first_spectrum_bottom - 20):min(first_spectrum_top + 20, len(fits[1].data) - 5),
                        spectrum_left:spectrum_right], 0, 1)
     rows = np.arange(max(5, first_spectrum_bottom - 20), min(first_spectrum_top + 20, len(fits[1].data) - 5))
 
-    function_to_fit = [tools.fit_gauss, tools.fit_box][int(first_spectrum_scan)]
-    avg = np.array([function_to_fit(rows, ff)[0] for ff in data])
+    if int(first_spectrum_scan):
+        avg = np.array([plc.fit_box(rows, ff)[0] for ff in data])
+    else:
+        avg = np.array([plc.fit_gaussian(rows, ff, positive=True)[0][2] for ff in data])
     cols = np.arange(spectrum_left, spectrum_right)
 
     def trace(xarr, yy0):
@@ -251,10 +253,10 @@ def get_absolute_y_star(fits, target_y_offset, use_standard_flat):
     y0 = curve_fit(trace, cols + 0.5, avg + 0.5, p0=[500])[0][0]
 
     if first_spectrum_scan:
-        data = get_standard_flat(fits, functions.sci(fits)[-1], use_standard_flat)
+        data = get_standard_flat(fits, plc.fits_sci(fits)[-1], use_standard_flat)
         data = np.sum(data[5:-5, max(5, spectrum_left - 20):min(spectrum_right + 20, len(fits[1].data[0]) - 5)], 1)
         rows = np.arange(5, len(fits[1].data) - 5)
-        center, center_err, fwhm, fwhm_err, popt = tools.fit_box(rows, data)
+        center, center_err, fwhm, fwhm_err, popt = plc.fit_box(rows, data)
         correction = - first_spectrum_direction * fwhm / 2
     else:
         correction = 0
@@ -262,9 +264,8 @@ def get_absolute_y_star(fits, target_y_offset, use_standard_flat):
     return y0 + correction + target_y_offset
 
 
-def calibration(input_data, direct_image=None, comparison_forward=None, comparison_index_forward=None,
-                comparison_reverse=None, comparison_index_reverse=None, target_x_offset=None, target_y_offset=None,
-                use_standard_flat=None, splitting=False):
+def calibration(input_data, comparison_index_forward=None, comparison_index_reverse=None, target_x_offset=None,
+                target_y_offset=None, use_standard_flat=None, splitting=False):
     """
     Calibration.
 
@@ -324,7 +325,9 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
     """
 
-    input_data = DataSet(input_data)
+    if len(input_data.spectroscopic_images) == 1:
+        comparison_index_forward = 0
+        comparison_index_reverse = 0
 
     # load pipeline and calibration variables to be used
 
@@ -389,32 +392,9 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         # set up the direct image and the comparison scans
 
-        if isinstance(input_data, DataSet):
-            if direct_image is None:
-                direct_image = functions.fits_like(input_data.direct_image)
-            else:
-                direct_image = functions.fits_like(direct_image)
-            if comparison_forward is None:
-                comparison_forward = functions.fits_like(input_data.spectroscopic_images[comparison_index_forward.value])
-            else:
-                comparison_forward = functions.fits_like(comparison_forward)
-            if comparison_reverse is None:
-                comparison_reverse = functions.fits_like(input_data.spectroscopic_images[comparison_index_reverse.value])
-            else:
-                comparison_reverse = functions.fits_like(comparison_reverse)
-        else:
-            if direct_image is None:
-                raise IraclisInputError('Direct image not given.')
-            else:
-                direct_image = functions.fits_like(direct_image)
-            if comparison_forward is None:
-                comparison_forward = functions.fits_like(input_data)
-            else:
-                comparison_forward = functions.fits_like(comparison_forward)
-            if comparison_reverse is None:
-                comparison_reverse = functions.fits_like(input_data)
-            else:
-                comparison_reverse = functions.fits_like(comparison_reverse)
+        direct_image = plc.copy_fits(input_data.direct_image)
+        comparison_forward = plc.copy_fits(input_data.spectroscopic_images[comparison_index_forward.value])
+        comparison_reverse = plc.copy_fits(input_data.spectroscopic_images[comparison_index_reverse.value])
 
         comparisons = {'forward': {'x_star': None, 'y_star': None, 'spectrum_right': None, 'spectrum_bottom': None,
                                    'interp_x': None, 'interp_y': None},
@@ -423,7 +403,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         for name, comparison in [['forward', comparison_forward], ['reverse', comparison_reverse]]:
 
-            for i in functions.sci(comparison):
+            for i in plc.fits_sci(comparison):
                 comparison[i].data[:5, :] = 0
                 comparison[i].data[-5:, :] = 0
                 comparison[i].data[:, :5] = 0
@@ -450,7 +430,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             comparisons[name]['spectrum_right'] = spectrum_right.value
             comparisons[name]['spectrum_bottom'] = first_spectrum_bottom.value
 
-            data = get_standard_flat(comparison, functions.sci(comparison)[0], use_standard_flat.value)
+            data = get_standard_flat(comparison, plc.fits_sci(comparison)[0], use_standard_flat.value)
             if spectrum_scan.value and abs(spectrum_top.value - spectrum_bottom.value) > 15:
                 data = np.sum(data[spectrum_bottom.value + 5:spectrum_top.value - 5], 0)
             else:
@@ -466,7 +446,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             comparisons[name]['interp_x'] = interp1d(cols, data, kind='cubic')
 
             data = get_standard_flat(comparison,
-                                     functions.sci(comparison)[-int(spectrum_scan.value)], use_standard_flat.value)
+                                     plc.fits_sci(comparison)[-int(spectrum_scan.value)], use_standard_flat.value)
             data = np.sum(
                 data[:, max(7, spectrum_left.value - 20):min(spectrum_right.value + 20,
                                                              len(comparison[1].data) - 7)], 1)
@@ -490,7 +470,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
             # run the position diagnostics
 
-            for i in functions.sci(fits):
+            for i in plc.fits_sci(fits):
                 fits[i].data[:5, :] = 0
                 fits[i].data[-5:, :] = 0
                 fits[i].data[:, :5] = 0
@@ -520,7 +500,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             # calculate the horizontal shift
 
             testx = np.arange(len(fits[1].data))
-            testy = get_standard_flat(fits, functions.sci(fits)[0], use_standard_flat.value)
+            testy = get_standard_flat(fits, plc.fits_sci(fits)[0], use_standard_flat.value)
 
             spectrum_bottom.from_fits(comparison)
             spectrum_top.from_fits(comparison)
@@ -556,7 +536,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             # calculate the vertical shift
 
             testx = np.arange(len(fits[1].data))
-            testy = get_standard_flat(fits, functions.sci(fits)[-int(spectrum_scan.value)], use_standard_flat.value)
+            testy = get_standard_flat(fits, plc.fits_sci(fits)[-int(spectrum_scan.value)], use_standard_flat.value)
 
             testy = np.sum(
                 testy[:, max(7, spectrum_left.value - 20):min(spectrum_right.value + 20,
@@ -600,7 +580,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
                 rows = np.arange(5, len(fits[1].data) - 5)
 
             if spectrum_scan.value:
-                best_fit = tools.fit_box(rows, data)[2:4]
+                best_fit = plc.fit_box(rows, data)[2:4]
             else:
                 best_fit = [0, 0]
 
@@ -701,8 +681,8 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
     else:
 
-        comparison_forward = functions.fits_like(input_data.spectroscopic_images[comparison_index_forward.value])
-        comparison_reverse = functions.fits_like(input_data.spectroscopic_images[comparison_index_reverse.value])
+        comparison_forward = plc.copy_fits(input_data.spectroscopic_images[comparison_index_forward.value])
+        comparison_reverse = plc.copy_fits(input_data.spectroscopic_images[comparison_index_reverse.value])
 
         # calibrate comparisons for vertical position
 
@@ -711,7 +691,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         for name, comparison in [['forward', comparison_forward], ['reverse', comparison_reverse]]:
 
-            for i in functions.sci(comparison):
+            for i in plc.fits_sci(comparison):
                 comparison[i].data[:5, :] = 0
                 comparison[i].data[-5:, :] = 0
                 comparison[i].data[:, :5] = 0
@@ -736,7 +716,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             comparisons[name]['spectrum_bottom'] = spectrum_bottom.value
 
             data = get_standard_flat(comparison,
-                                     functions.sci(comparison)[-int(spectrum_scan.value)], use_standard_flat.value)
+                                     plc.fits_sci(comparison)[-int(spectrum_scan.value)], use_standard_flat.value)
             data = np.sum(data[:, max(7, spectrum_left.value - 20):min(spectrum_right.value + 20,
                                                                        len(comparison[1].data) - 7)], 1)
 
@@ -757,7 +737,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
 
         for fits in input_data.spectroscopic_images:
 
-            for i in functions.sci(fits):
+            for i in plc.fits_sci(fits):
                 fits[i].data[:5, :] = 0
                 fits[i].data[-5:, :] = 0
                 fits[i].data[:, :5] = 0
@@ -795,7 +775,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
             first_spectrum_scan.to_fits(fits, value=comparisons[comparison_name]['scan'])
 
             testx = np.arange(len(fits[1].data))
-            testy = get_standard_flat(fits, functions.sci(fits)[-int(spectrum_scan.value)], use_standard_flat.value)
+            testy = get_standard_flat(fits, plc.fits_sci(fits)[-int(spectrum_scan.value)], use_standard_flat.value)
             testy = np.sum(testy[:, max(7, spectrum_left.value - 20):min(spectrum_right.value + 20,
                                                                          len(comparison[1].data) - 7)], 1)
 
@@ -837,7 +817,7 @@ def calibration(input_data, direct_image=None, comparison_forward=None, comparis
                 rows = np.arange(5, len(fits[1].data) - 5)
 
             if spectrum_scan.value:
-                best_fit = tools.fit_box(rows, data)[2:4]
+                best_fit = plc.fit_box(rows, data)[2:4]
             else:
                 best_fit = [0, 0]
 

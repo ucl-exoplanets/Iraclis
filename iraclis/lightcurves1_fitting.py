@@ -264,7 +264,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         print('Excluding {0} orbit{1} from the beginning of the visit ...'.format(
             exclude_initial_orbits.value, ['s', ''][1 // exclude_initial_orbits.value]))
         htime = heliocentric_julian_date_array.value
-        orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
+        orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
 
         indices_to_remain = indices_to_remain[orbits[exclude_initial_orbits.value]:]
 
@@ -272,7 +272,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         print('Excluding {0} orbit{1} from the end of the visit ...'.format(
             exclude_final_orbits.value, ['s', ''][1 // exclude_final_orbits.value]))
         htime = heliocentric_julian_date_array.value[indices_to_remain]
-        orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
+        orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
 
         indices_to_remain = indices_to_remain[:orbits[-exclude_final_orbits.value]]
 
@@ -280,7 +280,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         print('Excluding {0} point{1} from the beginning of each orbit ...'.format(
             exclude_initial_orbit_points.value, ['s', ''][1 // exclude_initial_orbit_points.value]))
         htime = heliocentric_julian_date_array.value[indices_to_remain]
-        orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
+        orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
 
         indices_to_remain = np.delete(indices_to_remain,
                                       np.concatenate([orbits + i for i in range(exclude_initial_orbit_points.value)]))
@@ -310,7 +310,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     if mid_orbit_ramps.value:
         htime = heliocentric_julian_date_array.value
-        orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
+        orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
         dumps = np.where(abs(htime - np.roll(htime, 1)) > 5.0 / 60.0 / 24.0)[0]
         dphase = np.zeros(len(htime))
         for i in range(1, len(dumps)):
@@ -330,7 +330,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         if mid_orbit_ramps.value:
             orbits = np.where(abs(htime - np.roll(htime, 1)) > 5.0 / 60.0 / 24.0)[0]
         else:
-            orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
+            orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
         orbits = htime[orbits]
         fphase = np.where(htime < orbits[1], 1, 0)
 
@@ -342,7 +342,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     if mid_orbit_ramps.value:
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 5.0 / 60.0 / 24.0)[0]
     else:
-        orbits = np.where(abs(htime - np.roll(htime, 1)) > 30.0 / 60.0 / 24.0)[0]
+        orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
     t0s = htime[orbits]
     ophase = []
     for pp in t0s:
@@ -585,9 +585,14 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     if transit_test < eclipse_test:
         observation_type = 'transit'
         print('This is a transit observation.')
+        if fit_mid_time.value == 'auto':
+
+            fit_mid_time.set(True)
     else:
         observation_type = 'eclipse'
         print('This is an eclipse observation.')
+        if fit_mid_time.value == 'auto':
+            fit_mid_time.set(False)
 
     # import series
 
@@ -1180,7 +1185,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
                     return model(*curve_fit_parameters)
 
-            popt, pcov = curve_fit(curve_fit_model, 1, data_bin,
+            popt, pcov = curve_fit(curve_fit_model, [1], data_bin,
                                    p0=np.array(initial)[curve_fit_fitted_parameters_indices])
 
             data_bin_error *= (np.std(data_bin - curve_fit_model(1, *popt)) /
@@ -1457,7 +1462,7 @@ def plot_fitting(dictionary, directory):
                          color=cmap(abs(correlation(traces[j], traces[var])) / 2.), fontsize=15, ha='right', va='top')
 
         plt.subplots_adjust(hspace=0, wspace=0)
-        functions.save_figure(directory, name=export_file)
+        plc.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_fitting_i(light_curve_dic, bin_to_plot, export_file):
@@ -1492,7 +1497,7 @@ def plot_fitting(dictionary, directory):
 
         plt.xlim(-x_max, x_max)
 
-        functions.adjust_ticks()
+        plc.adjust_ticks()
         plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 2)
@@ -1505,7 +1510,7 @@ def plot_fitting(dictionary, directory):
 
         plt.xlim(-x_max, x_max)
 
-        functions.adjust_ticks()
+        plc.adjust_ticks()
         plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 3)
@@ -1518,7 +1523,7 @@ def plot_fitting(dictionary, directory):
         plt.xlabel(r'$\mathrm{phase}$', fontsize=15)
 
         plt.xlim(-x_max, x_max)
-        functions.adjust_ticks()
+        plc.adjust_ticks()
 
         plt.subplot(6, 1, 6)
 
@@ -1528,10 +1533,10 @@ def plot_fitting(dictionary, directory):
         plt.ylabel(r'$\mathrm{res.} \ \mathrm{ACF}$', fontsize=15)
 
         plt.ylim(-1.0, 1.0)
-        functions.adjust_ticks()
+        plc.adjust_ticks()
 
         plt.subplots_adjust(hspace=0.0)
-        functions.save_figure(directory, name=export_file)
+        plc.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_fitting_all(light_curve_dic, export_file):
@@ -1621,7 +1626,7 @@ def plot_fitting(dictionary, directory):
         ax2.set_xlim(-x_max, x_max)
         ax2.set_ylim(y_min, y_max)
         ax2.set_xticklabels(ax2.get_xticks(), rotation=45, ha='right')
-        functions.adjust_ticks_ax(ax2)
+        plc.adjust_ticks_ax(ax2)
 
         ax3.set_title(r'$\mathrm{residuals}$', fontsize=15)
 
@@ -1629,7 +1634,7 @@ def plot_fitting(dictionary, directory):
         ax3.set_ylim(y_min, y_max)
         ax3.set_xticklabels(ax3.get_xticks(), rotation=45, ha='right')
         ax3.tick_params(labelleft=False)
-        functions.adjust_ticks_ax(ax3)
+        plc.adjust_ticks_ax(ax3)
 
         ax4.set_title(r'$\mathrm{res.} \ \mathrm{ACF}$', fontsize=15)
         ax4.set_xlabel(r'$\#$', fontsize=15)
@@ -1638,11 +1643,11 @@ def plot_fitting(dictionary, directory):
         ax4.set_xlim(-5, ax4xlim)
         ax4.set_xticklabels(ax4.get_xticks(), rotation=45, ha='right')
         ax4.tick_params(labelleft=False)
-        functions.adjust_ticks_ax(ax4)
+        plc.adjust_ticks_ax(ax4)
         ax4.set_xlim(-5, ax4xlim)
 
         plt.subplots_adjust(wspace=0)
-        functions.save_figure(directory, name=export_file)
+        plc.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_spectral_results(lightcurve, export_file):
@@ -1734,7 +1739,7 @@ def plot_fitting(dictionary, directory):
                      fmt='o', color='k', ms=n_plots, mec='None')
         ax1.set_ylabel(r'$\mathrm{bin} \ \mathrm{width} \, (\mu \mathrm{m})$', fontsize=15)
         ax1.tick_params(labelbottom=False)
-        functions.adjust_ticks_ax(ax1)
+        plc.adjust_ticks_ax(ax1)
 
         # plot 2
 
@@ -1745,7 +1750,7 @@ def plot_fitting(dictionary, directory):
         ax2.legend()
         ax2.set_ylabel('{0}{1}{2}'.format(r'$\mathrm{limb}$', '\n', r'$\mathrm{darkening}$', fontsize=15))
         ax2.tick_params(labelbottom=False)
-        functions.adjust_ticks_ax(ax2)
+        plc.adjust_ticks_ax(ax2)
 
         # plot 3
 
@@ -1759,7 +1764,7 @@ def plot_fitting(dictionary, directory):
         dy = 0.6 * (np.max(rp) - np.min(rp)) + np.max(rp_er)
         ax3.set_ylim((np.max(rp) + np.min(rp)) / 2 - dy, (np.max(rp) + np.min(rp)) / 2 + dy)
         ax3.tick_params(labelbottom=False)
-        functions.adjust_ticks_ax(ax3)
+        plc.adjust_ticks_ax(ax3)
 
         # plot 4
 
@@ -1770,26 +1775,26 @@ def plot_fitting(dictionary, directory):
             ax4.errorbar(wavelength_mean, n_l_for, n_l_for_er, color='k', fmt='-o', mec='None')
             ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
             ax4.tick_params(labelbottom=False)
-            functions.adjust_ticks_ax(ax4)
+            plc.adjust_ticks_ax(ax4)
 
         elif len(n_l_rev) > 0 and n_plots == 5:
 
             ax4.errorbar(wavelength_mean, n_l_rev, n_l_rev_er, color='k', fmt='-o', mec='None')
             ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
             ax4.tick_params(labelbottom=False)
-            functions.adjust_ticks_ax(ax4)
+            plc.adjust_ticks_ax(ax4)
 
         elif n_plots == 6:
 
             ax4.errorbar(wavelength_mean, n_l_for, n_l_for_er, color='k', fmt='-o', mec='None')
             ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
             ax4.tick_params(labelbottom=False)
-            functions.adjust_ticks_ax(ax4)
+            plc.adjust_ticks_ax(ax4)
 
             ax5.errorbar(wavelength_mean, n_l_rev, n_l_rev_er, color='k', fmt='-o', mec='None')
             ax5.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
             ax5.tick_params(labelbottom=False)
-            functions.adjust_ticks_ax(ax5)
+            plc.adjust_ticks_ax(ax5)
 
             next_ax = plt.subplot(n_plots, 1, 6)
 
@@ -1800,10 +1805,10 @@ def plot_fitting(dictionary, directory):
         next_ax.set_ylabel(r'$\mathrm{ramp} \ \mathrm{slope}$', fontsize=15)
         next_ax.set_xlabel(r'$\lambda \, (\mu \mathrm{m})$', fontsize=15)
 
-        functions.adjust_ticks_ax(next_ax)
+        plc.adjust_ticks_ax(next_ax)
 
         plt.subplots_adjust(hspace=0)
-        functions.save_figure(directory, name=export_file)
+        plc.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_diagnostics(lightcurve, export_file):
@@ -1856,7 +1861,7 @@ def plot_fitting(dictionary, directory):
 
         plt.ylabel(r'$\Delta y_i \, \mathrm{(pix)}$', fontsize=15)
 
-        functions.adjust_ticks()
+        plc.adjust_ticks()
         plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 2)
@@ -1866,7 +1871,7 @@ def plot_fitting(dictionary, directory):
         plt.errorbar(hjd_time[reverse], xshift[reverse], xshift_err[reverse],
                      fmt='o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        functions.adjust_ticks()
+        plc.adjust_ticks()
         plt.ylabel(r'$\Delta x_i \, \mathrm{(pix)}$', fontsize=15)
         plt.tick_params(labelbottom=False)
 
@@ -1877,7 +1882,7 @@ def plot_fitting(dictionary, directory):
         plt.plot(hjd_time[reverse], ssky[reverse],
                  'o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        functions.adjust_ticks()
+        plc.adjust_ticks()
         plt.ylabel(r'$\mathrm{sky} \, \mathrm{ratio}$', fontsize=15)
         plt.tick_params(labelbottom=False)
 
@@ -1888,17 +1893,16 @@ def plot_fitting(dictionary, directory):
         plt.plot((np.array(hjd_time) - hjd_time[0])[reverse], np.array(flux)[reverse] / (10 ** 8),
                  'o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        functions.adjust_ticks()
+        plc.adjust_ticks()
 
         plt.ylabel(r'$\mathrm{e}^{-} \, (\times 10^8)$', fontsize=15)
         plt.xlabel(r'$\Delta t \, \mathrm{(days)}$', fontsize=15)
 
         plt.subplots_adjust(hspace=0)
-        functions.save_figure(directory, name=export_file)
+        plc.save_figure(directory, name=export_file)
         plt.close('all')
 
     plot_diagnostics(dictionary['lightcurves'], 'diagnostics')
-    plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
     plot_correlations(dictionary['lightcurves'], 'white', 'white_correlations')
     plot_fitting_i(dictionary['lightcurves'], 'white', 'white_fitting')
     plot_fitting_all(dictionary['lightcurves'], 'all_fitting')
@@ -1906,7 +1910,8 @@ def plot_fitting(dictionary, directory):
     # noinspection PyBroadException
     try:
         plot_spectral_results(dictionary['lightcurves'], 'spectral_results')
-    except:
+    except Exception as e:
+        print(e)
         pass
 
     try:
@@ -1915,7 +1920,8 @@ def plot_fitting(dictionary, directory):
         # noinspection PyBroadException
         try:
             plot_correlations(dictionary['lightcurves'], 'bin_01', 'bin_correlations')
-        except:
+        except Exception as e:
+            print(e)
             pass
 
     try:
@@ -1924,5 +1930,6 @@ def plot_fitting(dictionary, directory):
         # noinspection PyBroadException
         try:
             plot_fitting_i(dictionary['lightcurves'], 'bin_01', 'bin_fitting')
-        except:
+        except Exception as e:
+            print(e)
             pass
