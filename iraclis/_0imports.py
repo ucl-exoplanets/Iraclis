@@ -33,3 +33,6 @@ curve_fit = plc.curve_fit
 interp1d = plc.interp1d
 FastICA = plc.FastICA
 PCA = plc.PCA
+
+import warnings
+from scipy.optimize import OptimizeWarning

@@ -499,4 +499,5 @@ def console():
     # for developers use only
 
     elif arguments['-T']:
-        os.system("cd {0};python __test__.py".format(os.path.abspath(os.path.dirname(__file__))))
+        from .__test__ import run_test
+        run_test()

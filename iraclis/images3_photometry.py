@@ -796,7 +796,9 @@ def plot_photometry(dataset, lightcurve, directory):
             figures = split_photometry(dataset, plot=True)[1]
             dataset.spectroscopic_images = original
         else:
-            dataset.spectroscopic_images = [dataset.spectroscopic_images[forward[0]][-1]]
+            if len(reverse[0]) > 0:
+                save_the_reverse = dataset.spectroscopic_images[reverse[0][-1]]
+            dataset.spectroscopic_images = [dataset.spectroscopic_images[forward[0][-1]]]
             figures = photometry(dataset, plot=True)[1]
 
         plc.save_figure(directory, figure=figures[0], name='forward_extraction_aperture')
@@ -813,7 +815,7 @@ def plot_photometry(dataset, lightcurve, directory):
             dataset.spectroscopic_images = test
             figures = split_photometry(dataset, plot=True)[1]
         else:
-            dataset.spectroscopic_images = [dataset.spectroscopic_images[reverse[0]][-1]]
+            dataset.spectroscopic_images = [save_the_reverse]
             figures = photometry(dataset, plot=True)[1]
 
         plc.save_figure(directory, figure=figures[0], name='reverse_extraction_aperture')

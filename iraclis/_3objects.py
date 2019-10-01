@@ -21,6 +21,13 @@ class DataSet:
         if not isinstance(input_data, str):
             raise IraclisFileError('Please give a file or directory name for the input data.')
 
+        elif input_data == 'empty':
+            self.file_names = []
+            self.spectroscopic_images = []
+            self.direct_image = [1]
+            self.splitted = False
+            self._data_set_directory_path = None
+
         elif os.path.isfile(input_data):
 
             self.file_names = []
@@ -150,7 +157,7 @@ class DataSet:
 
     def copy_split(self, split_number):
 
-        x = DataSet()
+        x = DataSet('empty')
         x.spectroscopic_images = self.spectroscopic_images[split_number]
 
         return x

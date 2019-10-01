@@ -651,15 +651,16 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
                 # calculate the distribution of the flux and fit a gaussian, do not consider pixels at the edges
 
                 frame = differential_science[i][10:-10, 10:-10]
-                # frame_mean, frame_std = tools.distribution(frame.flatten(), xstep=10.0)[-1][-2:]
-                # print(frame_mean, frame_std)
                 frame_mean, frame_std = plc.fit_one_d_distribution_gaussian(frame, step=10.0)[2][-2:]
                 frame_std = np.abs(frame_std)
-                # print(frame_mean, frame_std)
 
-                # find the non-illuminated pixels and save them
+                if np.sum((np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)) == 0:
+                    differential_science[i] = (frame == frame)
+                else:
+                    differential_science[i] = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
 
-                differential_science[i] = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
+                # frame_mean = np.median(frame)
+                # frame_std = np.median(np.abs(frame - frame_mean))
 
             # detect the final sky area from all the differential combination
 

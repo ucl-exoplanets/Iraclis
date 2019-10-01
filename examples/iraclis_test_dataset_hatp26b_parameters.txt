@@ -58,11 +58,11 @@ bins_file                          iraclis_test_dataset_hatp26b_bins.txt
 
 planet                             HAT-P-26 b
 # name/auto
-star_teff                          -0.04
+star_teff                          5079
 # number/auto
-star_logg                          5079
+star_logg                          4.56
 # number/auto
-star_meta                          4.56
+star_meta                          -0.04
 # number/auto
 rp_over_rs                         0.0715
 # number/auto
