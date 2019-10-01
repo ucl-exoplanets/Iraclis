@@ -661,6 +661,9 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
                     frame_mean = np.median(frame)
                     frame_std = np.median(np.abs(frame - frame_mean))
                     check_array = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
+                
+                if np.sum(check_array) == 0:
+                    check_array = (frame == frame)
 
                 differential_science[i] = check_array
 
