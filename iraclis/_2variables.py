@@ -245,7 +245,7 @@ class Variables:
 
         # sky
         self.sky_detection_limit = Variable(
-            'sky_detection_limit', keyword='SKYLIM', value=2.0, instance=float, kind='u')
+            'sky_detection_limit', keyword='SKYLIM', value=2.0, instance=float)
         self.sky_background_level = Variable(
             'sky_background_level', keyword='SKYBGLEV', instance=float)
         self.sky_area = Variable(
@@ -253,9 +253,9 @@ class Variables:
 
         # bpcr
         self.cr_neighbours = Variable(
-            'cr_neighbours', keyword='CRXNB', value=6, instance=int, kind='u')
+            'cr_neighbours', keyword='CRXNB', value=6, instance=int)
         self.cr_detection_limit = Variable(
-            'cr_detection_limit', keyword='CRLIM', value=3.0, instance=float, kind='u')
+            'cr_detection_limit', keyword='CRLIM', value=3.0, instance=float)
         self.use_bpcr_fast_mode = Variable(
             'use_bpcr_fast_mode', keyword='FBPCR', value=True, instance=bool)
         self.bpcr_map = Variable(
