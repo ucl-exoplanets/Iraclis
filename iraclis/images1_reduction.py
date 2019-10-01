@@ -657,19 +657,17 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
                 check_array = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
 
                 if np.sum(check_array) == 0:
-                    # differential_science[i] = (frame == frame)
                     frame_mean = np.median(frame)
                     frame_std = np.median(np.abs(frame - frame_mean))
                     check_array = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
-                
-                if np.sum(check_array) == 0:
-                    check_array = (frame == frame)
 
                 differential_science[i] = check_array
 
             # detect the final sky area from all the differential combination
 
             sky_area = np.where(np.all(np.array(differential_science), 0))
+            if len(sky_area[0]) == 0:
+                sky_area = np.where(np.sum(np.array(differential_science), 0) > 0.75 * len(np.array(differential_science)))
             sky_area = (sky_area[0] + 10, sky_area[1] + 10)
 
             # save the sky area in the fits file (0 is where the pixels is illuminated only by the sky background)
