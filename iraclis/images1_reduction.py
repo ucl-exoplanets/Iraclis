@@ -654,13 +654,15 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
                 frame_mean, frame_std = plc.fit_one_d_distribution_gaussian(frame, step=10.0)[2][-2:]
                 frame_std = np.abs(frame_std)
 
-                if np.sum((np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)) == 0:
-                    differential_science[i] = (frame == frame)
-                else:
-                    differential_science[i] = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
+                check_array = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
 
-                # frame_mean = np.median(frame)
-                # frame_std = np.median(np.abs(frame - frame_mean))
+                if np.sum(check_array) == 0:
+                    # differential_science[i] = (frame == frame)
+                    frame_mean = np.median(frame)
+                    frame_std = np.median(np.abs(frame - frame_mean))
+                    check_array = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
+
+                differential_science[i] = check_array
 
             # detect the final sky area from all the differential combination
 
