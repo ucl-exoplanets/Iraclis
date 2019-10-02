@@ -158,12 +158,12 @@ class DataSet:
 
         copy_of_file = plc.copy_fits(self.direct_image)
         try:
-            copy_of_file.writeto(os.path.join(export_directory, self.file_names[i]), output_verify='fix')
+            copy_of_file.writeto(os.path.join(export_directory, 'direct_image'), output_verify='fix')
         except pf.VerifyError as e:
             hdu = int(str(e.args)[4:-4].split('\\n')[1].replace('HDU ', '').replace(':', ''))
             card = int(str(e.args)[4:-4].split('\\n')[2].replace('Card ', '').replace(':', ''))
             del copy_of_file[hdu].header[card]
-            copy_of_file.writeto(os.path.join(export_directory, self.file_names[i]), output_verify='fix')
+            copy_of_file.writeto(os.path.join(export_directory, 'direct_image'), output_verify='fix')
 
         if export_pipeline_variables_file:
             variables.save(os.path.join(export_directory, export_pipeline_variables_file))
