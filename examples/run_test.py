@@ -1,16 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
-import sys
-import iraclis
 
-if sys.version_info[0] > 2:
-    from urllib.request import urlretrieve
-else:
-    from urllib import urlretrieve
-    input = raw_input
+from urllib.request import urlretrieve
+
+os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
 dataset_files = [
     'icy021ljq_raw.fits',
@@ -90,15 +83,18 @@ dataset_files = [
     'icy021k4q_raw.fits',
 ]
 
-destination = os.path.join(os.path.expanduser('~'), 'iraclis_test_dataset_hatp26b')
+destination = 'iraclis_test_dataset_hatp26b'
 
 if not os.path.isdir(destination):
     os.mkdir(destination)
 
-if not os.path.isdir(os.path.join('iraclis_test_dataset_hatp26b', 'raw_data')):
+if not os.path.isdir(os.path.join(destination, 'raw_data')):
     for num, dataset_file in enumerate(dataset_files):
         print('{0}/{1}: '.format(num + 1, len(dataset_files)), dataset_file)
         if not os.path.isfile(os.path.join(destination, dataset_file)):
             urlretrieve('https://mast.stsci.edu/portal/Download/file/HST/product/{0}'.format(
                 dataset_file), os.path.join(destination, dataset_file))
+
+
+os.system('iraclis -p {0}'.format('iraclis_test_dataset_hatp26b_parameters.txt'))
 

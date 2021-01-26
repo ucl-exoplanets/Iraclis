@@ -1,7 +1,8 @@
 *.pyc
-*.egg-info/
+*.egg-info
+*.eggs
+*.pytest_cache
+*.idea
+*.coverage*
 MANIFEST.in
-examples/iraclis_test_dataset_hatp26b/
 iraclis/*_local_*
-test/
-.idea/*

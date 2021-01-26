@@ -32,25 +32,26 @@ extraction_gauss_sigma             47.0
 method                             claret
 # claret/linear/quad/sqrt
 
-white_lower_wavelength             10880.0
+white_lower_wavelength             default
 # number/default
-white_upper_wavelength             16800.0
+white_upper_wavelength             default
 # number/default
-white_ldc1                         0.850033
+white_ldc1                         default
 # number/default
-white_ldc2                         -0.728096
+white_ldc2                         default
 # number/default
-white_ldc3                         0.908153
+white_ldc3                         default
 # number/default
-white_ldc4                         -0.397691
+white_ldc4                         default
 # number/default
 
-# Comment: You can set the above six parameters to default, if you want to use the pre-calculated limb-darkening
-# coefficients. In this case, the claret limb-darkening method will be used. These coefficients have been calculated for
-# a wavelength range between 10880.0 and 16800.0 Angstroms.
+# Comment: When the above parameters are set to default, the claret limb-darkening method will be used.
+# The white light-curve limits will be 10880.0 - 16800.0 Angstroms for G141 and 8000 - 11500 Angstroms
+# for G102.
 
-bins_file                          iraclis_test_dataset_hatp26b_bins.txt
+bins_file                          default_high
 # file path/default_high/default_low/default_vlow
+# an example of a bins file can be found in iraclis_test_dataset_hatp26b_bins.txt
 
 # Comment: You can set the above parameter to default_high, default_low or default_vlow. In this case, the claret
 # limb-darkening method will be used. Be careful to avoid conflicts, as the limb-darkening method used between spectral
@@ -92,17 +93,17 @@ exclude_final_orbits               0
 exclude_initial_orbit_points       0
 # number
 
-mcmc_iterations                    150000
+mcmc_iterations                    300000
 # number
-mcmc_walkers                       200
+mcmc_walkers                       50
 # number
-mcmc_burned_iterations             50000
+mcmc_burned_iterations             200000
 # number
-spectral_mcmc_iterations           50000
+spectral_mcmc_iterations           60000
 # number
-spectral_mcmc_walkers              100
+spectral_mcmc_walkers              50
 # number
-spectral_mcmc_burned_iterations    20000
+spectral_mcmc_burned_iterations    10000
 # number
 
 first_orbit_ramp                   True

@@ -10,7 +10,20 @@ fitting:    ...
 
 """
 
-from ._3objects import *
+__all__ = ['fitting', 'plot_fitting']
+
+import os
+import numpy as np
+import matplotlib
+import pylightcurve as plc
+
+
+from scipy.optimize import curve_fit
+from sklearn.decomposition import FastICA, PCA
+from matplotlib import pyplot as plt
+
+from iraclis.__errors__ import *
+from iraclis.classes import *
 
 
 def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
@@ -428,7 +441,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     # match forward and reverse scans
 
     fr = np.where(spectrum_direction_array.value > 0)[0]
-    if len(fr) != len(spectrum_direction_array.value):
+    rv = np.where(spectrum_direction_array.value < 0)[0]
+    if len(fr) != len(spectrum_direction_array.value) and len(rv) != len(spectrum_direction_array.value):
 
         print('Matching forward and revers scans ...')
 
@@ -622,39 +636,39 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     # forward scans normalisation factors
     names.append('n_w_for')
     print_names.append('n_\mathrm{w}^\mathrm{for}')
-    initial.append(np.median(data_white))
+    initial.append(np.log10(np.median(data_white)))
     if (data_scan < 0).all():
         limits1.append(np.nan)
         limits2.append(np.nan)
     else:
-        limits1.append(np.median(data_white) / 10.0)
-        limits2.append(np.median(data_white) * 10.0)
+        limits1.append(np.log10(np.median(data_white)) - 1)
+        limits2.append(np.log10(np.median(data_white)) + 1)
 
     # reverse scans normalisation factors
     names.append('n_w_rev')
     print_names.append('n_\mathrm{w}^\mathrm{rev}')
-    initial.append(np.median(data_white))
+    initial.append(np.log10(np.median(data_white)))
     if (data_scan > 0).all():
         limits1.append(np.nan)
         limits2.append(np.nan)
     else:
-        limits1.append(np.median(data_white) / 10.0)
-        limits2.append(np.median(data_white) * 10.0)
+        limits1.append(np.log10(np.median(data_white)) - 1)
+        limits2.append(np.log10(np.median(data_white)) + 1)
 
     # long term ramp - 1st order
     names.append('r_a1')
     print_names.append('r_{a1}')
     initial.append(0.001)
-    limits1.append(-10.0)
-    limits2.append(10.0)
+    limits1.append(-2.0)
+    limits2.append(2.0)
 
     # long term ramp - 2nd order
     names.append('r_a2')
     print_names.append('r_{a2}')
     initial.append(0.0)
     if second_order_ramp.value:
-        limits1.append(-10.0)
-        limits2.append(10.0)
+        limits1.append(-2.0)
+        limits2.append(2.0)
     else:
         limits1.append(np.nan)
         limits2.append(np.nan)
@@ -663,8 +677,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     names.append('r_b1')
     print_names.append('r_{b1}')
     initial.append(0.001)
-    limits1.append(-10.0)
-    limits2.append(10.0)
+    limits1.append(-2.0)
+    limits2.append(2.0)
 
     # sort term mid-orbit ramp - amplitude
     names.append('mor_b1')
@@ -674,8 +688,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits1.append(np.nan)
         limits2.append(np.nan)
     else:
-        limits1.append(-10.0)
-        limits2.append(10.0)
+        limits1.append(-2.0)
+        limits2.append(2.0)
 
     # sort term first-orbit ramp - amplitude
     names.append('for_b1')
@@ -685,37 +699,37 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits1.append(np.nan)
         limits2.append(np.nan)
     else:
-        limits1.append(-10.0)
-        limits2.append(10.0)
+        limits1.append(-2.0)
+        limits2.append(2.0)
 
     # sort term ramp - decay
     names.append('r_b2')
     print_names.append('r_{b2}')
-    initial.append(500.0)
-    limits1.append(1.0)
-    limits2.append(3000.0)
+    initial.append(2.5)
+    limits1.append(0.0)
+    limits2.append(3.5)
 
     # sort term mid-orbit ramp - decay
     names.append('mor_b2')
     print_names.append('mor_{b2}')
-    initial.append(500.0)
+    initial.append(2.5)
     if np.sum(data_dphase ** 2) == 0:
         limits1.append(np.nan)
         limits2.append(np.nan)
     else:
-        limits1.append(1.0)
-        limits2.append(3000.0)
+        limits1.append(0.0)
+        limits2.append(3.5)
 
     # sort term first-orbit ramp - decay
     names.append('for_b2')
     print_names.append('for_{b2}')
-    initial.append(500.0)
+    initial.append(2.5)
     if np.sum(data_fphase ** 2) == 0:
         limits1.append(np.nan)
         limits2.append(np.nan)
     else:
-        limits1.append(1.0)
-        limits2.append(3000.0)
+        limits1.append(0.0)
+        limits2.append(3.5)
 
     # ld1
     ldc1.from_dictionary(white_dictionary)
@@ -817,8 +831,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     print_names.append('i')
     initial.append(inclination.value)
     if fit_inclination.value:
-        limits1.append(60.0)
-        limits2.append(90.0)
+        limits1.append(inclination.value - 10)
+        limits2.append(min(90.0, inclination.value + 10))
     else:
         limits1.append(np.nan)
         limits2.append(np.nan)
@@ -838,8 +852,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         mid_time.set(mid_time.value - period.value / 2)
     initial.append(mid_time.value)
     if fit_mid_time.value:
-        limits1.append(mid_time.value - 0.2)
-        limits2.append(mid_time.value + 0.2)
+        limits1.append(mid_time.value - 0.1)
+        limits2.append(mid_time.value + 0.1)
     else:
         limits1.append(np.nan)
         limits2.append(np.nan)
@@ -864,14 +878,14 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
               model_rp_over_rs, model_fp_over_fs, model_period, model_sma_over_rs, model_eccentricity,
               model_inclination, model_periastron, model_mid_time, independent=False):
 
-        normalisation = np.where(data_scan > 0, model_norm_f, model_norm_r)
+        normalisation = np.where(data_scan > 0, 10 ** model_norm_f, 10 ** model_norm_r)
         detrend1 = (1.0 - model_r_a1 * (data_time - model_mid_time)
                     + model_r_a2 * ((data_time - model_mid_time) ** 2))
         ramp_ampl = np.where(data_dphase == 0, model_r_b1, model_mor_b1)
         ramp_ampl = np.where(data_fphase == 0, ramp_ampl, model_for_b1)
         ramp_decay = np.where(data_dphase == 0, model_r_b2, model_mor_b2)
         ramp_decay = np.where(data_fphase == 0, ramp_decay, model_for_b2)
-        detrend2 = 1.0 - ramp_ampl * np.exp(- ramp_decay * data_ophase)
+        detrend2 = 1.0 - ramp_ampl * np.exp(- (10 ** ramp_decay) * data_ophase)
 
         if observation_type == 'transit':
             signal = plc.transit(method.value, [model_ldc1, model_ldc2, model_ldc3, model_ldc4],
@@ -896,15 +910,18 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
         mcmc = plc.EmceeFitting([data_white, data_white_error], model, np.array(initial), np.array(limits1),
                                 np.array(limits2), mcmc_walkers.value, mcmc_iterations.value,
-                                mcmc_burned_iterations.value, names, print_names, counter=True)
+                                mcmc_burned_iterations.value, names, print_names, counter=True,
+                                strech_prior=1.0)
 
         mcmc.run_mcmc()
+
+        initial = mcmc.results['parameters_final']
 
         data_white_error *= np.std(data_white - model(*mcmc.results['parameters_final'])) / np.median(data_white_error)
 
         mcmc = plc.EmceeFitting([data_white, data_white_error], model, np.array(initial), np.array(limits1),
                                 np.array(limits2), mcmc_walkers.value, mcmc_iterations.value,
-                                mcmc_burned_iterations.value, names, print_names, counter=True)
+                                mcmc_burned_iterations.value, names, print_names, counter=True, strech_prior=1.0)
 
         mcmc.run_mcmc()
 
@@ -1016,24 +1033,24 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             # forward scans normalisation factors
             names.append('n_l_for')
             print_names.append('n_\lambda ^\mathrm{for}')
-            initial.append(np.median(data_bin))
+            initial.append(np.log10(np.median(data_bin)))
             if (data_scan < 0).all():
                 limits1.append(np.nan)
                 limits2.append(np.nan)
             else:
-                limits1.append(np.median(data_bin) / 10.0)
-                limits2.append(np.median(data_bin) * 10.0)
+                limits1.append(np.log10(np.median(data_bin)) - 1)
+                limits2.append(np.log10(np.median(data_bin)) + 1)
 
             # reverse scans normalisation factors
             names.append('n_l_rev')
             print_names.append('n_\lambda ^\mathrm{rev}')
-            initial.append(np.median(data_bin))
+            initial.append(np.log10(np.median(data_bin)))
             if (data_scan > 0).all():
                 limits1.append(np.nan)
                 limits2.append(np.nan)
             else:
-                limits1.append(np.median(data_bin) / 10.0)
-                limits2.append(np.median(data_bin) * 10.0)
+                limits1.append(np.log10(np.median(data_bin)) - 1)
+                limits2.append(np.log10(np.median(data_bin)) + 1)
 
             # long term ramp - 1st order
             names.append('r_a1')
@@ -1155,7 +1172,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                       model_rp_over_rs, model_fp_over_fs, model_period, model_sma_over_rs, model_eccentricity,
                       model_inclination, model_periastron, model_mid_time, independent=False):
 
-                normalisation = np.where(data_scan > 0, model_norm_f, model_norm_r)
+                normalisation = np.where(data_scan > 0, 10 ** model_norm_f, 10 ** model_norm_r)
                 detrend1 = 1.0 - model_ramp_a1 * (data_time - model_mid_time)
                 detrend2 = model_white
 
@@ -1193,7 +1210,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
             mcmc = plc.EmceeFitting([data_bin, data_bin_error], model, np.array(initial), np.array(limits1),
                                     np.array(limits2), spectral_mcmc_walkers.value, spectral_mcmc_iterations.value,
-                                    spectral_mcmc_burned_iterations.value, names, print_names, counter=False)
+                                    spectral_mcmc_burned_iterations.value, names, print_names, counter=False,
+                                    strech_prior=1.0)
 
             mcmc.run_mcmc()
 
@@ -1339,6 +1357,7 @@ def plot_fitting(dictionary, directory):
         distr = np.insert(distr, len(distr), np.zeros(int(x_size) - len(distr)))
 
         plt.step(distrx, distr, c='k')
+        # plt.xlim(xmin, xmax)
 
     def td_distribution(datax, datay):
 
@@ -1381,6 +1400,8 @@ def plot_fitting(dictionary, directory):
         errors = []
         traces = []
 
+        trace_to_keep = 0
+
         for i in light_curve_dic[bin_to_plot]['statistics']['corr_variables'].split(','):
             names.append(light_curve_dic[bin_to_plot]['parameters'][i]['print_name'])
             results.append(light_curve_dic[bin_to_plot]['parameters'][i]['value'])
@@ -1388,7 +1409,17 @@ def plot_fitting(dictionary, directory):
             errors2.append(light_curve_dic[bin_to_plot]['parameters'][i]['p_error'])
             errors.append(0.5 * (light_curve_dic[bin_to_plot]['parameters'][i]['m_error'] +
                                  light_curve_dic[bin_to_plot]['parameters'][i]['p_error']))
-            traces.append(light_curve_dic[bin_to_plot]['parameters'][i]['trace'])
+            trace = light_curve_dic[bin_to_plot]['parameters'][i]['trace']
+
+            median = np.median(trace)
+            mad = np.sqrt(np.median((trace - median) ** 2))
+
+            trace_to_keep += (trace > (median - 10 * mad)) * (trace < (median + 10 * mad))
+
+        trace_to_keep = np.where(trace_to_keep == len(light_curve_dic[bin_to_plot]['statistics']['corr_variables'].split(',')))
+
+        for i in light_curve_dic[bin_to_plot]['statistics']['corr_variables'].split(','):
+            traces.append(light_curve_dic[bin_to_plot]['parameters'][i]['trace'][trace_to_keep])
 
         all_var = len(traces)
         fig = plt.figure(figsize=(2.5 * all_var, 2.5 * all_var))
@@ -1408,8 +1439,6 @@ def plot_fitting(dictionary, directory):
             plt.axvline(results[var] - errors1[var], c='k', ls='--', lw=0.5)
             plt.axvline(results[var] + errors2[var], c='k', ls='--', lw=0.5)
 
-            plt.xticks(plt.xticks()[0], np.ones_like(plt.yticks()[0]))
-            plt.yticks(plt.yticks()[0], np.ones_like(plt.yticks()[0]))
             plt.tick_params(left=False, right=False, top=False, bottom=False, labelbottom=False, labelleft=False)
 
             try:
@@ -1625,14 +1654,13 @@ def plot_fitting(dictionary, directory):
 
         ax2.set_xlim(-x_max, x_max)
         ax2.set_ylim(y_min, y_max)
-        ax2.set_xticklabels(ax2.get_xticks(), rotation=45, ha='right')
         plc.adjust_ticks_ax(ax2)
 
         ax3.set_title(r'$\mathrm{residuals}$', fontsize=15)
+        ax2.set_xlabel(r'$\mathrm{phase}$', fontsize=15)
 
         ax3.set_xlim(-x_max, x_max)
         ax3.set_ylim(y_min, y_max)
-        ax3.set_xticklabels(ax3.get_xticks(), rotation=45, ha='right')
         ax3.tick_params(labelleft=False)
         plc.adjust_ticks_ax(ax3)
 
@@ -1641,7 +1669,6 @@ def plot_fitting(dictionary, directory):
 
         ax4.set_ylim(y_min, y_max)
         ax4.set_xlim(-5, ax4xlim)
-        ax4.set_xticklabels(ax4.get_xticks(), rotation=45, ha='right')
         ax4.tick_params(labelleft=False)
         plc.adjust_ticks_ax(ax4)
         ax4.set_xlim(-5, ax4xlim)
@@ -1910,26 +1937,20 @@ def plot_fitting(dictionary, directory):
     # noinspection PyBroadException
     try:
         plot_spectral_results(dictionary['lightcurves'], 'spectral_results')
-    except Exception as e:
-        print(e)
+    except:
         pass
 
     try:
-        plot_correlations(dictionary['lightcurves'], 'bin_10', 'bin_correlations')
-    except KeyError:
-        # noinspection PyBroadException
         try:
-            plot_correlations(dictionary['lightcurves'], 'bin_01', 'bin_correlations')
-        except Exception as e:
-            print(e)
+            os.mkdir(os.path.join(directory, 'bins'))
+        except FileExistsError:
             pass
-
-    try:
-        plot_fitting_i(dictionary['lightcurves'], 'bin_10', 'bin_fitting')
+        for i in dictionary['lightcurves'].keys():
+            if 'bin_' in i:
+                try:
+                    plot_correlations(dictionary['lightcurves'], i, os.path.join('bins', i + '_correlations'))
+                    plot_fitting_i(dictionary['lightcurves'], i, os.path.join('bins', i + '_fitting'))
+                except:
+                    pass
     except KeyError:
-        # noinspection PyBroadException
-        try:
-            plot_fitting_i(dictionary['lightcurves'], 'bin_01', 'bin_fitting')
-        except Exception as e:
-            print(e)
-            pass
+        pass

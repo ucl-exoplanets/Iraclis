@@ -14,7 +14,16 @@ Contents: functions that perform reduction processes
 
 """
 
-from ._3objects import *
+__all__ = ['timing', 'bias', 'dark', 'flat', 'linearity', 'gain', 'sky', 'bpcr']
+
+import numpy as np
+import warnings
+import pylightcurve as plc
+
+from scipy.interpolate import griddata
+from scipy.interpolate import interp1d
+
+from iraclis.classes import *
 
 
 def timing(input_data):
@@ -651,7 +660,9 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
                 # calculate the distribution of the flux and fit a gaussian, do not consider pixels at the edges
 
                 frame = differential_science[i][10:-10, 10:-10]
-                frame_mean, frame_std = plc.fit_one_d_distribution_gaussian(frame, step=10.0)[2][-2:]
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    frame_mean, frame_std = plc.fit_one_d_distribution_gaussian(frame, step=10.0)[2][-2:]
                 frame_std = np.abs(frame_std)
 
                 check_array = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)

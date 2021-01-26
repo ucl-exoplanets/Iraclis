@@ -1,7 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-__version__ = '1.3.0'
+import os
 
-from .__run__ import *
+__version__ = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), '__version__.txt')).read()
+
+from .pipeline import *

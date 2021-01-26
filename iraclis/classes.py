@@ -1,8 +1,18 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-from ._1databases import *
+__all__ = ['variables', 'calibrations', 'DataSet', 'PipelineCounter']
+
+import os
+import sys
+import glob
+import time
+import numpy as np
+import shutil
+import datetime
+import pylightcurve as plc
+import astropy.io.fits as pf
+
+from iraclis.__errors__ import *
+from iraclis.__databases__ import iraclis_data
 
 
 class Variable:
@@ -262,6 +272,10 @@ class Variables:
             'bpcr_map', keyword='BPCRMAP', instance=np.array, hdu_image=True)
 
         # calibration
+
+        self.reference_pixel_x = Variable('reference_pixel_x', keyword='CRPIX1', instance=int)
+        self.reference_pixel_y = Variable('reference_pixel_y', keyword='CRPIX2', instance=int)
+
         self.comparison_index_forward = Variable(
             'comparison_index_forward', keyword='FCOMP', value=0, instance=int)
         self.comparison_index_reverse = Variable(
@@ -549,9 +563,9 @@ class Variables:
         elif bins_file == 'default_high':
             print('Loading bins file: {} ...'.format('default_high.txt'))
             if grism.value == 'G141':
-                bins_file = os.path.join(databases.wfc3, 'default_high.txt')
+                bins_file = os.path.join(iraclis_data.hstwfc3(), 'default_high.txt')
             elif grism.value == 'G102':
-                bins_file = os.path.join(databases.wfc3, 'default_high_g102.txt')
+                bins_file = os.path.join(iraclis_data.hstwfc3(), 'default_high_g102.txt')
 
             bins_lower_wavelength, bins_upper_wavelength = np.loadtxt(bins_file, unpack=True)
             bins_ldc1 = ['default_high' for ff in bins_lower_wavelength]
@@ -562,9 +576,9 @@ class Variables:
         elif bins_file == 'default_low':
             print('Loading bins file: {} ...'.format('default_low.txt'))
             if grism.value == 'G141':
-                bins_file = os.path.join(databases.wfc3, 'default_low.txt')
+                bins_file = os.path.join(iraclis_data.hstwfc3(), 'default_low.txt')
             elif grism.value == 'G102':
-                bins_file = os.path.join(databases.wfc3, 'default_low_g102.txt')
+                bins_file = os.path.join(iraclis_data.hstwfc3(), 'default_low_g102.txt')
 
             bins_lower_wavelength, bins_upper_wavelength = np.loadtxt(bins_file, unpack=True)
             bins_ldc1 = ['default_low' for ff in bins_lower_wavelength]
@@ -575,9 +589,9 @@ class Variables:
         elif bins_file == 'default_vlow':
             print('Loading bins file: {} ...'.format('default_vlow.txt'))
             if grism.value == 'G141':
-                bins_file = os.path.join(databases.wfc3, 'default_vlow.txt')
+                bins_file = os.path.join(iraclis_data.hstwfc3(), 'default_vlow.txt')
             elif grism.value == 'G102':
-                bins_file = os.path.join(databases.wfc3, 'default_vlow_g102.txt')
+                bins_file = os.path.join(iraclis_data.hstwfc3(), 'default_vlow_g102.txt')
 
             bins_lower_wavelength, bins_upper_wavelength = np.loadtxt(bins_file, unpack=True)
             bins_ldc1 = ['default_vlow' for ff in bins_lower_wavelength]
@@ -664,7 +678,7 @@ class Calibration:
         else:
             input_data = input_data.spectroscopic_images[0]
 
-        calibration_directory_path = databases.wfc3
+        calibration_directory_path = iraclis_data.hstwfc3()
 
         if not self.calibration_data:
 
@@ -817,214 +831,217 @@ class Calibrations:
 
 calibrations = Calibrations()
 
-class Tools:
 
-    def __init__(self):
-        pass
+class DataSet:
 
-    @staticmethod
-    def central_crop(original_array, destination_fits):
+    def __init__(self, input_data, direct_image=None):
 
-        crop1 = len(original_array) / 2 - len(destination_fits[1].data) / 2
-        crop2 = len(original_array) / 2 + len(destination_fits[1].data) / 2
+        if direct_image is not None:
+            if isinstance(direct_image, str):
+                if os.path.isfile(direct_image):
+                    direct_image = pf.open(direct_image)
+                else:
+                    raise IraclisFileError('No such file {0}'.format(input_data))
+            else:
+                raise IraclisFileError('Please give a file name for the direct image or leave it empty.')
 
-        return original_array[crop1:crop2, crop1:crop2]
+        if not isinstance(input_data, str):
+            raise IraclisFileError('Please give a file or directory name for the input data.')
 
-    def fit_2d_gauss(self, dataxy):
+        elif input_data == 'empty':
+            self.file_names = []
+            self.spectroscopic_images = []
+            self.direct_image = [1]
+            self.splitted = False
+            self._data_set_directory_path = None
 
-        model = self.gauss(np.arange(len(dataxy)), len(dataxy) / 2, np.max(dataxy), 1.0)
-        dx = np.argmax(np.convolve(np.sum(dataxy, 0), model)) - np.argmax(np.convolve(model, model))
-        dy = np.argmax(np.convolve(np.sum(dataxy, 1), model)) - np.argmax(np.convolve(model, model))
+        elif os.path.isfile(input_data):
 
-        x00 = int(dx + len(dataxy) / 2)
-        y00 = int(dy + len(dataxy) / 2)
+            self.file_names = []
+            self.spectroscopic_images = [pf.open(input_data)]
+            if not direct_image:
+                self.direct_image = None
+            else:
+                self.direct_image = direct_image
+            self.splitted = False
+            self._data_set_directory_path = None
 
-        min_y = int(max(y00 - 50, 0))
-        max_y = int(min(y00 + 50, len(dataxy)))
-        min_x = int(max(x00 - 50, 0))
-        max_x = int(min(x00 + 50, len(dataxy[0])))
-        dataxy = dataxy[min_y:max_y, min_x:max_x]
+            if self.spectroscopic_images[0][0].header[variables.observation_type.keyword] != 'SPECTROSCOPIC':
+                raise IraclisFileError('A single direct image is not s valid input dataset.')
 
-        # fit the 2D gaussian
+        elif os.path.isdir(input_data) and len(glob.glob(os.path.join(input_data, '*', ''))) == 0:
 
-        def twod_gauss(dataxy, h, mean_x, mean_y, width_x, width_y, c):
-            datax, datay = dataxy
-            z = h * np.exp(
-                -(((mean_x - datax) ** 2) / (width_x ** 2) + ((mean_y - datay) ** 2) / (width_y ** 2)) / 2) + c
-            return z.flatten()
+            nsamp = []
+            final_list = []
+            direct_image = None
 
-        x = np.arange(min_x, max_x)
-        y = np.arange(min_y, max_y)
-        x, y = np.meshgrid(x, y)
-        pp0 = [np.max(dataxy) - np.median(dataxy), x00, y00, 1.0, 1.0, np.median(dataxy)]
-        popt, pcov = curve_fit(twod_gauss, (x.flatten() + 0.5, y.flatten() + 0.5), dataxy.flatten(),
-                               p0=pp0, maxfev=10000)
+            files = sorted(glob.glob(os.path.join(input_data, '*.fits')))
+            for i in files:
+                with pf.open(i) as j:
+                    if j[0].header[variables.observation_type.keyword] == 'SPECTROSCOPIC':
+                        final_list.append([j[0].header[variables.exposure_start.keyword],
+                                           os.path.split(i)[1], plc.copy_fits(j)])
+                        nsamp.append(j[0].header[variables.total_samples.keyword])
+                    elif not direct_image:
+                        direct_image = plc.copy_fits(j[:2])
 
-        center_x = popt[1]
-        center_y = popt[2]
+            nsamps = [int(np.median(np.array(nsamp)))]
 
-        return center_x, center_y, popt
+            final_list.sort()
+            list_of_times, list_of_files, list_of_fits = np.swapaxes(np.array(final_list, dtype=object), 0, 1)
 
-    @staticmethod
-    def gauss(x_arr, x0, aa, bb):
-        return aa * np.exp(-np.power(x0 - x_arr, 2) / (2 * (bb ** 2)))
+            outliers = True
+            while outliers:
+                outliers = False
+                for i in range(len(list_of_fits)):
+                    if list_of_fits[i][0].header[variables.total_samples.keyword] not in nsamps:
+                        list_of_fits = np.delete(list_of_fits, i)
+                        list_of_files = np.delete(list_of_files, i)
+                        outliers = True
+                        break
 
-    def fit_gauss(self, datax, datay):
+            self.file_names = list_of_files
+            self.spectroscopic_images = list_of_fits
+            self.direct_image = direct_image
+            self.splitted = False
+            self._data_set_directory_path = input_data
 
-        for expand in range(10, 30):
-            datax = np.append(datax, max(datax) + expand)
-            datay = np.append(datay, 0)
-            datax = np.append(datax, min(datax) - expand)
-            datay = np.append(datay, 0)
+        elif os.path.isdir(input_data) and len(glob.glob(os.path.join(input_data, '*', ''))) > 0:
 
-        popt, pcov = curve_fit(self.gauss, datax, datay, p0=[datax[np.argmax(datay)], max(datay), 1.0])
+            self.file_names = []
+            self.spectroscopic_images = []
+            self.direct_image = []
+            self.splitted = True
+            self._data_set_directory_path = input_data
 
-        center = popt[0]
+            for input_data in sorted(glob.glob(os.path.join(input_data, '*', ''))):
 
-        center_err = np.sqrt(pcov[0][0])
+                nsamp = []
+                final_list = []
+                direct_image = None
 
-        return center, center_err, popt
+                files = sorted(glob.glob(os.path.join(input_data, '*.fits')))
+                for i in files:
+                    with pf.open(i) as j:
+                        if j[0].header[variables.observation_type.keyword] == 'SPECTROSCOPIC':
+                            final_list.append([j[0].header[variables.exposure_start.keyword],
+                                               os.path.split(i)[1], plc.copy_fits(j)])
+                            nsamp.append(j[0].header[variables.total_samples.keyword])
+                        elif not direct_image:
+                            direct_image = plc.copy_fits(j[:2])
 
-    def box(self, x_arr, x0, aa, bb, cc):
-        return aa * np.exp(-np.power(np.power(x0 - x_arr, 2) / (2 * (bb ** 2)), cc))
+                nsamps = [int(np.median(np.array(nsamp)))]
 
-    def fit_box(self, datax, datay):
+                final_list.sort()
+                list_of_times, list_of_files, list_of_fits = np.swapaxes(final_list, 0, 1)
 
-        minlim = datax[np.argmax(datay[5:] - datay[:-5])]
-        maxlim = datax[np.argmin(datay[5:] - datay[:-5])]
+                outliers = True
+                while outliers:
+                    outliers = False
+                    for i in range(len(list_of_fits)):
+                        if list_of_fits[i][0].header[variables.total_samples.keyword] not in nsamps:
+                            list_of_fits = np.delete(list_of_fits, i)
+                            list_of_files = np.delete(list_of_files, i)
+                            outliers = True
+                            break
 
-        for expand in range(10, 30):
-            datax = np.append(datax, max(datax) + expand)
-            datay = np.append(datay, 0)
-            datax = np.append(datax, min(datax) - expand)
-            datay = np.append(datay, 0)
+                self.file_names = list_of_files
+                self.spectroscopic_images.append(list_of_fits)
+                self.direct_image = direct_image
 
-        popt, pcov = curve_fit(self.box, datax, datay,
-                               p0=[0.5 * (maxlim + minlim), max(datay), 0.5 * (maxlim - minlim), 1.0])
+        else:
+            raise IraclisFileError('No such file or directory: {0}'.format(input_data))
 
-        center = popt[0]
+        if not self.direct_image:
+            raise IraclisFileError('A direct image is necessary.')
 
-        center_err = np.sqrt(pcov[0][0])
+    def save(self, export_directory, arrange=True, export_pipeline_variables_file='variables.txt'):
 
-        fwhm = popt[2] * 2.0 * np.sqrt(2.0 * (np.log(2) ** (1.0 / popt[3])))
+        if os.path.isdir(export_directory):
+            backup = '{0}_{1}'.format(export_directory, time.strftime('%y-%m-%d_%H-%M-%S'))
+            shutil.copytree(export_directory, backup)
+            shutil.rmtree(export_directory)
 
-        s, c = popt[2], popt[3]
-        ss, cs = np.sqrt(pcov[2][2]), np.sqrt(pcov[3][3])
-        fwhm_err = np.sqrt(8.0 * (ss ** 2) * (np.log(2.0) ** (1.0 / c))
-                           + (2.0 * (cs ** 2) * (s ** 2) * (np.log(2.0) ** (1.0 / c))
-                              * (np.log(np.log(2.0)) ** 2)) / (c ** 4))
+        os.mkdir(export_directory)
 
-        return center, center_err, fwhm, fwhm_err, popt
+        if arrange:
+            for i in range(len(self.file_names)):
+                date = str(self.spectroscopic_images[i][0].header['DATE-OBS'])
+                obs_time = str(self.spectroscopic_images[i][0].header['TIME-OBS'])
+                obs_time = '-'.join(obs_time.split(':'))
+                if self.file_names[i].split('_')[0] != date or self.file_names[i].split('_')[1] != obs_time:
+                    self.file_names[i] = '{0}_{1}_{2}'.format(date, obs_time, os.path.split(self.file_names[i])[1])
 
-    def fit_line(self, datax, datay):
+        for i in range(len(self.file_names)):
 
-        mx = np.mean(datax)
-        my = np.mean(datay)
+            copy_of_file = plc.copy_fits(self.spectroscopic_images[i])
+            try:
+                copy_of_file.writeto(os.path.join(export_directory, self.file_names[i]), output_verify='fix')
+            except pf.VerifyError as e:
+                hdu = int(str(e.args)[4:-4].split('\\n')[1].replace('HDU ', '').replace(':', ''))
+                card = int(str(e.args)[4:-4].split('\\n')[2].replace('Card ', '').replace(':', ''))
+                del copy_of_file[hdu].header[card]
+                copy_of_file.writeto(os.path.join(export_directory, self.file_names[i]), output_verify='fix')
 
-        ssxx = np.sum((datax - mx) ** 2)
-        ssyy = np.sum((datay - my) ** 2)
-        ssxy = np.sum((datax - mx) * (datay - my))
-
-        bb = ssxy / ssxx
-        aa = my - bb * mx
-
-        n = len(datax)
-        sss = np.sqrt((ssyy - bb * ssxy) / (n - 2))
-
-        aerr = sss * np.sqrt(1.0 / n + (mx ** 2) / ssxx)
-        berr = sss / np.sqrt(ssxx)
-
-        return aa, bb, aerr, berr
-
-    @staticmethod
-    def distribution(data_i, xstep=5.0):
-
-        def gauss(x, aa, x0, bb):
-            return aa * np.exp(-(x - x0) ** 2 / (2 * bb ** 2))
-
-        data = np.array(data_i)
-        xstep = np.sqrt(np.median((data - np.median(data)) ** 2)) / xstep
-        xmin = min(data)
-        xmax = max(data)
-        x_size = round((xmax - xmin) / xstep) + 1
-
-        distrx = xmin + np.arange(x_size) * xstep
-        data = np.int_((data - xmin) / xstep)
-        distr = np.bincount(data)
-        distr = np.insert(distr, len(distr), np.zeros(int(x_size) - len(distr)))
-
-        pick = np.max(distr)
-        mean = distrx[np.argmax(distr)]
-        sigma = np.abs(distrx[np.argmin(np.abs(distr - pick / 2))] - mean)
+        copy_of_file = plc.copy_fits(self.direct_image)
         try:
-            popt, pcov = curve_fit(gauss, distrx, distr, p0=[pick, mean, sigma])
-        except RuntimeError:
-            popt = [0, np.mean(data_i), np.std(data_i)]
-        return distrx, distr, popt
+            copy_of_file.writeto(os.path.join(export_directory, 'direct_image.fits'), output_verify='fix')
+        except pf.VerifyError as e:
+            hdu = int(str(e.args)[4:-4].split('\\n')[1].replace('HDU ', '').replace(':', ''))
+            card = int(str(e.args)[4:-4].split('\\n')[2].replace('Card ', '').replace(':', ''))
+            del copy_of_file[hdu].header[card]
+            copy_of_file.writeto(os.path.join(export_directory, 'direct_image.fits'), output_verify='fix')
 
-    @staticmethod
-    def posterior_analysis(data_i):
+        if export_pipeline_variables_file:
+            variables.save(os.path.join(export_directory, export_pipeline_variables_file))
 
-        data = np.array(data_i)
-        xstep = np.sqrt(np.median((data - np.median(data)) ** 2)) / 5.0
-        bin_width = xstep
-        xmin = min(data)
-        xmax = max(data)
-        x_size = round((xmax - xmin) / xstep) + 1
+    def copy_split(self, split_number):
 
-        distrx = xmin + np.arange(x_size) * xstep
-        data = np.int_((data - xmin) / xstep)
-        distr = np.bincount(data)
-        distr = np.insert(distr, len(distr), np.zeros(int(x_size) - len(distr)))
+        x = DataSet('empty')
+        x.spectroscopic_images = self.spectroscopic_images[split_number]
 
-        confidence_interval = 68. / 100.
-        # corresponds to the 1-sigma level propability
-
-        pleft = 0.0
-        centroid = np.argmax(distr)
-        exp_val = distrx[centroid]
-
-        total_propability_left = np.sum(bin_width * distr[:centroid]) * confidence_interval
-        total_propability_right = np.sum(bin_width * distr[centroid:]) * confidence_interval
-
-        num = centroid
-        leftci = 0
-        while pleft <= total_propability_left:
-            if num == centroid:
-                pleft += (bin_width / 2.0) * distr[num]
-            else:
-                pleft += bin_width * distr[num]
-            leftci = distrx[num]
-            num -= 1
-            if num < 0:
-                print('ERROR : confidence level can not be reached from left')
-                break
-        pright = 0.0
-        num = centroid
-        rightci = 0
-        while pright <= total_propability_right:
-            if num == centroid:
-                pright += (bin_width / 2.0) * distr[num]
-            else:
-                pright += bin_width * distr[num]
-            rightci = distrx[num]
-            num += 1
-            if num > len(distr) - 1:
-                print('ERROR : confidence level can not be reached from right')
-                break
-
-        error_plus, error_minus = rightci - exp_val, exp_val - leftci
-
-        return exp_val, error_minus, error_plus
-
-    @staticmethod
-    def correlation(x, y):
-        n = len(x)
-        mx = np.mean(x)
-        sx = np.std(x)
-        my = np.mean(y)
-        sy = np.std(y)
-        return np.round(np.sum((x - mx) * (y - my)) / ((n - 1) * sx * sy), 2)
+        return x
 
 
-tools = Tools()
+# pipeline counter
+
+
+class PipelineCounter:
+
+    def __init__(self, task, total_iterations, show_every=1):
+
+        self.task = '{0}{1}'.format(task, '.' * (15 - len(task)))
+        self.current_iteration = 0
+        self.total_iterations = int(total_iterations)
+        self.start_time = time.time()
+        self.show = 0
+        self.show_every = int(show_every)
+
+        if self.total_iterations == 1:
+            self.show_every = 10
+
+    def update(self):
+
+        self.current_iteration += 1
+        self.show += 1.0 / self.show_every
+
+        out_of = '{0}{1} / {2}'.format(' ' * (len(str(self.total_iterations)) - len(str(self.current_iteration))),
+                                       str(self.current_iteration), str(self.total_iterations))
+
+        delta_time = time.time() - self.start_time
+
+        time_left = str(datetime.timedelta(
+            seconds=int((self.total_iterations - self.current_iteration) * delta_time / self.current_iteration)))
+
+        total_time = str(datetime.timedelta(seconds=int(delta_time)))
+
+        if int(self.show):
+            sys.stdout.write('\r\033[K')
+            sys.stdout.write('{0}: {1}   time left: {2}   total time: {3}'.format(
+                self.task, out_of, time_left, total_time))
+            sys.stdout.flush()
+            self.show = 0
+
+        if self.current_iteration == self.total_iterations and self.total_iterations > 1:
+            print('')
+

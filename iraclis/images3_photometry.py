@@ -17,7 +17,16 @@ get_flux_gauss:     ...
 
 """
 
-from ._3objects import *
+__all__ = ['photometry', 'plot_photometry', 'split_photometry']
+
+import numpy as np
+import scipy
+import warnings
+import pylightcurve as plc
+
+from matplotlib import pyplot as plt
+
+from iraclis.classes import *
 
 
 def get_flux_integral(fits, lower_wavelength, upper_wavelength,
@@ -793,13 +802,17 @@ def plot_photometry(dataset, lightcurve, directory):
             for i in dataset.spectroscopic_images:
                 test.append([i[-1]])
             dataset.spectroscopic_images = test
-            figures = split_photometry(dataset, plot=True)[1]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                figures = split_photometry(dataset, plot=True)[1]
             dataset.spectroscopic_images = original
         else:
-            if len(reverse[0]) > 0:
-                save_the_reverse = dataset.spectroscopic_images[reverse[0][-1]]
+            original = list(dataset.spectroscopic_images)
             dataset.spectroscopic_images = [dataset.spectroscopic_images[forward[0][-1]]]
-            figures = photometry(dataset, plot=True)[1]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                figures = photometry(dataset, plot=True)[1]
+            dataset.spectroscopic_images = original
 
         plc.save_figure(directory, figure=figures[0], name='forward_extraction_aperture')
         plc.save_figure(directory, figure=figures[1], name='forward_stellar_spectrum')
@@ -813,10 +826,14 @@ def plot_photometry(dataset, lightcurve, directory):
             for i in dataset.spectroscopic_images:
                 test.append([i[-1]])
             dataset.spectroscopic_images = test
-            figures = split_photometry(dataset, plot=True)[1]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                figures = split_photometry(dataset, plot=True)[1]
         else:
-            dataset.spectroscopic_images = [save_the_reverse]
-            figures = photometry(dataset, plot=True)[1]
+            dataset.spectroscopic_images = [dataset.spectroscopic_images[reverse[0][-1]]]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                figures = photometry(dataset, plot=True)[1]
 
         plc.save_figure(directory, figure=figures[0], name='reverse_extraction_aperture')
         plc.save_figure(directory, figure=figures[1], name='reverse_stellar_spectrum')

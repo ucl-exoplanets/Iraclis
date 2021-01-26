@@ -23,7 +23,16 @@ get_relative_position:      ...
 get_scan_length:            ...
 """
 
-from ._3objects import *
+__all__ = ['calibration']
+
+import numpy as np
+import warnings
+import pylightcurve as plc
+
+from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
+
+from iraclis.classes import *
 
 
 def get_position_diagnostics(fits):
@@ -109,20 +118,21 @@ def get_standard_flat(fits, sample, use_standard_flat):
 
         final_array = fits[sample].data / flatfield
         final_array = np.where(cr_test == 1, np.nan, final_array)
-
-        while len(np.where(np.isnan(final_array))[0]) > 0:
-            final_array = np.where(np.isnan(final_array),
-                                   np.nanmean(
-                                       [
-                                           np.roll(final_array, 1, 0),
-                                           np.roll(final_array, 2, 0),
-                                           np.roll(final_array, -1, 0),
-                                           np.roll(final_array, -2, 0),
-                                           np.roll(final_array, 1, 1),
-                                           np.roll(final_array, 2, 1),
-                                           np.roll(final_array, -1, 1),
-                                           np.roll(final_array, -2, 1),
-                                       ], 0), final_array)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            while len(np.where(np.isnan(final_array))[0]) > 0:
+                final_array = np.where(np.isnan(final_array),
+                                       np.nanmean(
+                                           [
+                                               np.roll(final_array, 1, 0),
+                                               np.roll(final_array, 2, 0),
+                                               np.roll(final_array, -1, 0),
+                                               np.roll(final_array, -2, 0),
+                                               np.roll(final_array, 1, 1),
+                                               np.roll(final_array, 2, 1),
+                                               np.roll(final_array, -1, 1),
+                                               np.roll(final_array, -2, 1),
+                                           ], 0), final_array)
 
         return final_array
 
@@ -136,6 +146,8 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
     wfc3_aperture = variables.wfc3_aperture.custom()
     postarg1 = variables.postarg1.custom()
     grism = variables.grism.custom()
+    reference_pixel_x = variables.reference_pixel_x.custom_from_fits(direct_image, position=1)
+    reference_pixel_y = variables.reference_pixel_y.custom_from_fits(direct_image, position=1)
 
     direct_image_offsets = {'F098W': 0.150, 'F132N': 0.039, 'F140W': 0.083, 'F126N': 0.264, 'F153M': 0.146,
                             'F167N': 0.196, 'F139M': 0.110, 'F164N': 0.169, 'F127M': 0.131, 'F160W': 0.136,
@@ -183,7 +195,11 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
                   'IR-UVIS-CENTER': 0.135357, 'IR-UVIS': 0.135666, 'IR-UVIS-FIX': 0.135666, 'GRISM1024': 0.135603,
                   'GRISM512': 0.135504, 'GRISM256': 0.135508, 'GRISM128': 0.135474, 'GRISM64': 0.135474}
 
-    x0 = plc.fit_two_d_gaussian(direct_image[1].data, positive=True, symmetric=True, window=50, sigma=1)[0][2]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        x0 = plc.fit_two_d_gaussian(direct_image[1].data, positive=True, symmetric=True,
+                                    point_xy=(reference_pixel_x.value, reference_pixel_y.value),
+                                    window=50, sigma=1)[0][2]
 
     grism.from_fits(direct_image)
 
@@ -236,7 +252,9 @@ def get_absolute_y_star(fits, target_y_offset, use_standard_flat):
     if int(first_spectrum_scan):
         avg = np.array([plc.fit_box(rows, ff)[0] for ff in data])
     else:
-        avg = np.array([plc.fit_gaussian(rows, ff, positive=True)[0][2] for ff in data])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            avg = np.array([plc.fit_gaussian(rows, ff, positive=True)[0][2] for ff in data])
     cols = np.arange(spectrum_left, spectrum_right)
 
     def trace(xarr, yy0):
@@ -609,8 +627,10 @@ def calibration(input_data, comparison_index_forward=None, comparison_index_reve
                 return a * x_lev + b * y_lev + cc * x_lev * x_lev + d * x_lev * y_lev + e * y_lev * y_lev + f
 
             def wdpt(xlam, c1, c2, c3, s1, s2, s3):
-                x_wdpt, l_wdpt = xlam
-                return (c1 / (c2 + l_wdpt) + c3) + (s1 / (s2 + l_wdpt) + s3) * x_wdpt
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    x_wdpt, l_wdpt = xlam
+                    return (c1 / (c2 + l_wdpt) + c3) + (s1 / (s2 + l_wdpt) + s3) * x_wdpt
 
             cor = (507 - len(fits[1].data) / 2)
 

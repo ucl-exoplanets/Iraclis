@@ -1,21 +1,28 @@
-"""Usage: __run__.py -p PARFILE
-          __run__.py -d DATADIR
-          __run__.py -D DATADIR [PROCEDURE] [PARSTRING]
-          __run__.py -T
 
-"""
+import os
+import glob
+import time
+import numpy as np
+import pickle
+import shutil
+import pylightcurve as plc
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from astropy.io import fits
+from scipy.optimize import curve_fit
+from urllib.request import urlretrieve
 
-from .images1_reduction import *
-from .images2_calibration import *
-from .images3_photometry import *
-from .lightcurves1_fitting import *
+from iraclis.__errors__ import *
+from iraclis.classes import *
+from iraclis.images1_reduction import *
+from iraclis.images2_calibration import *
+from iraclis.images3_photometry import *
+from iraclis.lightcurves1_fitting import *
 
 
 def process_visit(parameters_file=None, data_directory=None, procedure=None, par_string=None):
+
+    print('')
+    print('Iraclis log')
 
     # user inputs
 
@@ -150,28 +157,28 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
                 frame = plc.copy_fits(data_set.spectroscopic_images[i])
                 frame2 = plc.copy_fits(raw_data_set.spectroscopic_images[i])
-                new_frame = [pf.PrimaryHDU(header=frame[0].header, data=frame[0].data),
-                             pf.ImageHDU(header=frame2[1 + sample * 5].header, data=frame2[1 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[2 + sample * 5].header, data=frame2[2 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[3 + sample * 5].header, data=frame2[3 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[4 + sample * 5].header, data=frame2[4 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[5 + sample * 5].header, data=frame2[5 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[6 + sample * 5].header, data=frame2[6 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[7 + sample * 5].header, data=frame2[7 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[8 + sample * 5].header, data=frame2[8 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[9 + sample * 5].header, data=frame2[9 + sample * 5].data),
-                             pf.ImageHDU(header=frame2[10 + sample * 5].header, data=frame2[10 + sample * 5].data),
-                             pf.ImageHDU(header=frame['SKYAREA'].header, data=frame['SKYAREA'].data,
-                                         name='SKYAREA'),
-                             pf.ImageHDU(header=frame['SCANMAP'].header, data=frame['SCANMAP'].data,
-                                         name='SCANMAP'),
-                             pf.ImageHDU(header=frame['WMAP'].header, data=frame['WMAP'].data, name='WMAP'),
-                             pf.ImageHDU(header=frame['NWMAP'].header, data=frame['NWMAP'].data, name='NWMAP'),
-                             pf.ImageHDU(header=frame['BPCRMAP'].header, data=frame['BPCRMAP'].data,
-                                         name='BPCRMAP'),
+                new_frame = [fits.PrimaryHDU(header=frame[0].header, data=frame[0].data),
+                             fits.ImageHDU(header=frame2[1 + sample * 5].header, data=frame2[1 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[2 + sample * 5].header, data=frame2[2 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[3 + sample * 5].header, data=frame2[3 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[4 + sample * 5].header, data=frame2[4 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[5 + sample * 5].header, data=frame2[5 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[6 + sample * 5].header, data=frame2[6 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[7 + sample * 5].header, data=frame2[7 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[8 + sample * 5].header, data=frame2[8 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[9 + sample * 5].header, data=frame2[9 + sample * 5].data),
+                             fits.ImageHDU(header=frame2[10 + sample * 5].header, data=frame2[10 + sample * 5].data),
+                             fits.ImageHDU(header=frame['SKYAREA'].header, data=frame['SKYAREA'].data,
+                                           name='SKYAREA'),
+                             fits.ImageHDU(header=frame['SCANMAP'].header, data=frame['SCANMAP'].data,
+                                           name='SCANMAP'),
+                             fits.ImageHDU(header=frame['WMAP'].header, data=frame['WMAP'].data, name='WMAP'),
+                             fits.ImageHDU(header=frame['NWMAP'].header, data=frame['NWMAP'].data, name='NWMAP'),
+                             fits.ImageHDU(header=frame['BPCRMAP'].header, data=frame['BPCRMAP'].data,
+                                           name='BPCRMAP'),
                              ]
 
-                data_set.spectroscopic_images[i] = pf.HDUList(new_frame)
+                data_set.spectroscopic_images[i] = fits.HDUList(new_frame)
 
             data_set = bias(data_set)
             data_set = linearity(data_set)
@@ -268,6 +275,8 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
         print('Saving fitting plots in {} ...'.format(os.path.split(fitting_figures_directory)[1]))
         plot_fitting(light_curve, fitting_figures_directory)
+
+        print('')
 
     # fitting the spectral light curves
 
@@ -489,15 +498,246 @@ def spectral_global_fit_detrended(list_of_files, lc_id, output_directory,
     mcmc.plot_detrended_models(os.path.join(output_directory, 'detrended_models.pdf'))
 
 
-def console():
+def run_test():
+    dataset_files = [
+        'icy021ljq_raw.fits',
+        'icy021l6q_raw.fits',
+        'icy021m2q_raw.fits',
+        'icy021kuq_raw.fits',
+        'icy021lgq_raw.fits',
+        'icy021kmq_raw.fits',
+        'icy021k1q_raw.fits',
+        'icy021kxq_raw.fits',
+        'icy021lrq_raw.fits',
+        'icy021l0q_raw.fits',
+        'icy021lyq_raw.fits',
+        'icy021ksq_raw.fits',
+        'icy021kfq_raw.fits',
+        'icy021llq_raw.fits',
+        'icy021jzq_raw.fits',
+        'icy021ltq_raw.fits',
+        'icy021kkq_raw.fits',
+        'icy021laq_raw.fits',
+        'icy021lkq_raw.fits',
+        'icy021kaq_raw.fits',
+        'icy021m3q_raw.fits',
+        'icy021ktq_raw.fits',
+        'icy021l7q_raw.fits',
+        'icy021lfq_raw.fits',
+        'icy021klq_raw.fits',
+        'icy021kyq_raw.fits',
+        'icy021lsq_raw.fits',
+        'icy021k0q_raw.fits',
+        'icy021lxq_raw.fits',
+        'icy021kgq_raw.fits',
+        'icy021lmq_raw.fits',
+        'icy021luq_raw.fits',
+        'icy021k6q_raw.fits',
+        'icy021kjq_raw.fits',
+        'icy021l4q_raw.fits',
+        'icy021m0q_raw.fits',
+        'icy021kwq_raw.fits',
+        'icy021lhq_raw.fits',
+        'icy021kbq_raw.fits',
+        'icy021k3q_raw.fits',
+        'icy021l9q_raw.fits',
+        'icy021kzq_raw.fits',
+        'icy021lpq_raw.fits',
+        'icy021leq_raw.fits',
+        'icy021koq_raw.fits',
+        'icy021kdq_raw.fits',
+        'icy021lnq_raw.fits',
+        'icy021l2q_raw.fits',
+        'icy021k8q_raw.fits',
+        'icy021kqq_raw.fits',
+        'icy021kiq_raw.fits',
+        'icy021lcq_raw.fits',
+        'icy021k5q_raw.fits',
+        'icy021lvq_raw.fits',
+        'icy021m1q_raw.fits',
+        'icy021kvq_raw.fits',
+        'icy021l5q_raw.fits',
+        'icy021liq_raw.fits',
+        'icy021kcq_raw.fits',
+        'icy021lqq_raw.fits',
+        'icy021k2q_raw.fits',
+        'icy021l8q_raw.fits',
+        'icy021ldq_raw.fits',
+        'icy021knq_raw.fits',
+        'icy021keq_raw.fits',
+        'icy021loq_raw.fits',
+        'icy021jxq_flt.fits',
+        'icy021lzq_raw.fits',
+        'icy021kpq_raw.fits',
+        'icy021l3q_raw.fits',
+        'icy021k9q_raw.fits',
+        'icy021lbq_raw.fits',
+        'icy021lwq_raw.fits',
+        'icy021jyq_raw.fits',
+        'icy021k4q_raw.fits',
+    ]
 
-    arguments = docopt.docopt(__doc__)
+    desktop = os.path.join(os.path.expanduser('~'), 'Desktop')
+    if not os.path.isdir(desktop):
+        desktop = glob.glob(os.path.join(os.path.expanduser('~'), '*', 'Desktop'))[0]
+    if not os.path.isdir(desktop):
+        desktop = os.path.expanduser('~')
 
-    if arguments['-p'] or arguments['-d'] or arguments['-D']:
-        process_visit(arguments['PARFILE'], arguments['DATADIR'], arguments['PROCEDURE'], arguments['PARSTRING'])
+    destination = os.path.join(desktop, 'iraclis_test_dataset_hatp26b')
 
-    # for developers use only
+    if not os.path.isdir(destination):
+        os.mkdir(destination)
 
-    elif arguments['-T']:
-        from .__test__ import run_test
-        run_test()
+    if not os.path.isdir(os.path.join(destination, 'raw_data')):
+        for num, dataset_file in enumerate(dataset_files):
+            print('{0}/{1}: '.format(num + 1, len(dataset_files)), dataset_file)
+            if not os.path.isfile(os.path.join(destination, dataset_file)):
+                urlretrieve('https://mast.stsci.edu/portal/Download/file/HST/product/{0}'.format(
+                    dataset_file), os.path.join(destination, dataset_file))
+
+    parameters_file = os.path.join(destination, 'iraclis_test_dataset_hatp26b_parameters.txt')
+    w = open(parameters_file, 'w')
+    w.write('\n'.join([
+        'data_directory                     {0}          '.format(destination),
+        '# directory path                                ',
+        'output_directory_copy              False        ',
+        '# directory name/False                          ',
+        '                                                ',
+        'reduction                          True         ',
+        '# True/False                                    ',
+        'splitting                          False        ',
+        '# True/False                                    ',
+        'extraction                         True         ',
+        '# True/False                                    ',
+        'splitting_extraction               False        ',
+        '# True/False                                    ',
+        'fitting_white                      True         ',
+        '# True/False                                    ',
+        'fitting_spectrum                   True         ',
+        '# True/False                                    ',
+        '                                                ',
+        'target_x_offset                    0.0          ',
+        '# number                                        ',
+        'target_y_offset                    0.0          ',
+        '# number                                        ',
+        'aperture_lower_extend              -20.0        ',
+        '# number                                        ',
+        'aperture_upper_extend              20.0         ',
+        '# number                                        ',
+        'extraction_method                  gauss        ',
+        '# gauss/integral                                ',
+        'extraction_gauss_sigma             47.0         ',
+        '# number                                        ',
+        '                                                ',
+        'method                             claret       ',
+        '# claret/linear/quad/sqrt                       ',
+        '                                                ',
+        'white_lower_wavelength             default      ',
+        '# number/default                                ',
+        'white_upper_wavelength             default      ',
+        '# number/default                                ',
+        'white_ldc1                         default      ',
+        '# number/default                                ',
+        'white_ldc2                         default      ',
+        '# number/default                                ',
+        'white_ldc3                         default      ',
+        '# number/default                                ',
+        'white_ldc4                         default      ',
+        '# number/default                                ',
+        '                                                ',
+        '# Comment: When the above parameters are set '
+        'to default, the claret limb-darkening method '
+        'will be used.                                   ',
+        '# The white light-curve limits will be '
+        '10880.0 - 16800.0 Angstroms for G141 and '
+        '8000 - 11500 Angstroms for G102.                ',
+        '                                                ',
+        'bins_file                          default_low  ',
+        '# file path/default_high/default_low/default_'
+        'vlow                                            ',
+        '# an example of a bins file can be found in '
+        'iraclis_test_dataset_hatp26b_bins.txt           ',
+        '                                                ',
+        '# Comment: You can set the above parameter to '
+        'default_high, default_low or default_vlow. In '
+        'this case, the claret                           ',
+        '# limb-darkening method will be used. Be '
+        'careful to avoid conflicts, as the '
+        'limb-darkening method used between spectral     ',
+        '# and white light curves should be the same.    ',
+        '                                                ',
+        'planet                             HAT-P-26 b   ',
+        '# name/auto                                     ',
+        'star_teff                          5079         ',
+        '# number/auto                                   ',
+        'star_logg                          4.56         ',
+        '# number/auto                                   ',
+        'star_meta                          -0.04        ',
+        '# number/auto                                   ',
+        'rp_over_rs                         0.0715       ',
+        '# number/auto                                   ',
+        'fp_over_fs                         0.0001       ',
+        '# number/auto                                   ',
+        'period                             4.234515     ',
+        '# number/auto                                   ',
+        'sma_over_rs                        13.44        ',
+        '# number/auto                                   ',
+        'eccentricity                       0.0          ',
+        '# number/auto                                   ',
+        'inclination                        88.6         ',
+        '# number/auto                                   ',
+        'periastron                         0.0          ',
+        '# number/auto                                   ',
+        'mid_time                           2455304.65118',
+        '# number/auto                                   ',
+        '                                                ',
+        '# Comment: You can set any of the above 12 '
+        'parameters to auto, to use the data from the '
+        'Open Exoplanet Catalogue.                       ',
+        '                                                ',
+        'apply_up_down_stream_correction    False        ',
+        '# True/False                                    ',
+        'exclude_initial_orbits             1            ',
+        '# number                                        ',
+        'exclude_final_orbits               0            ',
+        '# number                                        ',
+        'exclude_initial_orbit_points       0            ',
+        '# number                                        ',
+        '                                                ',
+        'mcmc_iterations                    300000       ',
+        '# number                                        ',
+        'mcmc_walkers                       50           ',
+        '# number                                        ',
+        'mcmc_burned_iterations             200000       ',
+        '# number                                        ',
+        'spectral_mcmc_iterations           60000        ',
+        '# number                                        ',
+        'spectral_mcmc_walkers              50           ',
+        '# number                                        ',
+        'spectral_mcmc_burned_iterations    10000        ',
+        '# number                                        ',
+        '                                                ',
+        'first_orbit_ramp                   True         ',
+        '# True/False                                    ',
+        'second_order_ramp                  False        ',
+        '# True/False                                    ',
+        'mid_orbit_ramps                    True         ',
+        '# True/False                                    ',
+        '                                                ',
+        'fit_ldc1                           False        ',
+        '# True/False                                    ',
+        'fit_ldc2                           False        ',
+        '# True/False                                    ',
+        'fit_ldc3                           False        ',
+        '# True/False                                    ',
+        'fit_ldc4                           False        ',
+        '# True/False                                    ',
+        'fit_inclination                    False        ',
+        '# True/False                                    ',
+        'fit_sma_over_rs                    False        ',
+        '# True/False                                    ',
+        'fit_mid_time                       True         '
+    ]))
+    w.close()
+
+    os.system('iraclis -p {0}'.format(parameters_file))

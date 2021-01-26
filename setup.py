@@ -6,8 +6,9 @@ import glob
 name = 'iraclis'
 description = 'Analysis pipeline for HST/WFC3 spectroscopic observations of exoplanet transits and eclipses'
 url = 'https://github.com/ucl-exoplanets/Iraclis'
-install_requires = ['docopt', 'pylightcurve>=2.3.2']
-entry_point = '__run__:console'
+install_requires = ['docopt', 'pylightcurve>=3.0.5', 'numpy>=1.19.2', 'matplotlib>=3.3.2', 'scipy>=1.5.2',
+                    'emcee>=3.0.2', 'sklearn', 'astropy>=4.2']
+entry_point = '__main__:console'
 
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
 
