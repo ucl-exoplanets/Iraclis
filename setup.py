@@ -46,11 +46,6 @@ except:
     with codecs.open('readme.md', encoding='utf-8') as f:
         long_description = f.read()
 
-version = ' '
-for i in open(os.path.join(name, '__init__.py')):
-    if len(i.split('__version__')) > 1:
-        version = i.split()[-1][1:-1]
-
 setup(
     name=name,
     version=version,
