@@ -14,7 +14,7 @@ except:
 
 databases_file = '__databases__.pickle'
 package_name = 'iraclis'
-github_link = 'https://github.comm/ucl-exoplanets/Iraclis/blob/master/__databases__.pickle?raw=true'
+github_link = 'https://github.comm/ucl-exoplanets/Iraclis/blob/master/iraclis/__databases__.pickle?raw=true'
 
 
 class IraclisData:
