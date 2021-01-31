@@ -1,5 +1,5 @@
 
-__all__ = ['variables', 'calibrations', 'DataSet', 'PipelineCounter']
+__all__ = ['variables', 'calibrations','tools', 'DataSet', 'PipelineCounter']
 
 import os
 import sys
@@ -7,11 +7,14 @@ import glob
 import time
 import numpy as np
 import shutil
-import datetime
-import pylightcurve as plc
 import astropy.io.fits as pf
+import datetime
+import matplotlib.pyplot as plt
+import pylightcurve as plc
 
-from iraclis.__errors__ import *
+from scipy.optimize import curve_fit
+
+from iraclis.errors import *
 from iraclis.__databases__ import iraclis_data
 
 
@@ -238,8 +241,7 @@ class Variables:
             'sample_time', keyword='SAMPTIME', instance=float)
 
         # timing
-        self.heliocentric_julian_date = Variable(
-            'heliocentric_julian_date', keyword='HJD', instance=float)
+        self.bjd_tdb = Variable('bjd_tdb', keyword='BJD_TDB', instance=float)
 
         # bias and zero-read
         self.zero_read = Variable(
@@ -368,8 +370,8 @@ class Variables:
             'bins_file', value='default_high', instance=str, kind='u')
         self.bins_number = Variable(
             'bins_number', value=0, instance=int)
-        self.heliocentric_julian_date_array = Variable(
-            'heliocentric_julian_date_array', value=np.array([]), instance=np.array)
+        self.bjd_tdb_array = Variable(
+            'bjd_tdb_array', value=np.array([]), instance=np.array)
         self.spectrum_direction_array = Variable(
             'spectrum_direction_array', value=np.array([]), instance=np.array)
         self.sky_background_level_array = Variable(
@@ -437,16 +439,16 @@ class Variables:
         self.fit_inclination = Variable('fit_inclination', 'FITI', False, bool, 'u')
         self.periastron = Variable('periastron', 'W', 'auto', float, 'u', auto_fill=True)
         self.mid_time = Variable('mid_time', 'MT', 'auto', float, 'u', auto_fill=True)
-        self.fit_mid_time = Variable('fit_mid_time', 'FITMT', 'auto', bool, 'u', auto_fill=True)
+        self.fit_mid_time = Variable('fit_mid_time', 'FITMT', True, bool, 'u')
         self.second_order_ramp = Variable('second_order_ramp', 'RAMP2', False, bool, 'u')
         self.first_orbit_ramp = Variable('first_orbit_ramp', 'FOR', True, bool, 'u')
         self.mid_orbit_ramps = Variable('mid_orbit_ramps', 'MOR', True, bool, 'u')
         self.mcmc_iterations = Variable('mcmc_iterations', 'MCMCI', 300000, int, 'u')
-        self.mcmc_walkers = Variable('mcmc_walkers', 'MCMCW', 200, int, 'u')
+        self.mcmc_walkers = Variable('mcmc_walkers', 'MCMCW', 50, int, 'u')
         self.mcmc_burned_iterations = Variable('mcmc_burned_iterations', 'MCMCB', 200000, int, 'u')
-        self.spectral_mcmc_iterations = Variable('spectral_mcmc_iterations', 'SPMCMCI', 50000, int, 'u')
-        self.spectral_mcmc_walkers = Variable('spectral_mcmc_walkers', 'SPMCMCW', 100, int, 'u')
-        self.spectral_mcmc_burned_iterations = Variable('spectral_mcmc_burned_iterations', 'SPMCMCB', 20000, int, 'u')
+        self.spectral_mcmc_iterations = Variable('spectral_mcmc_iterations', 'SPMCMCI', 60000, int, 'u')
+        self.spectral_mcmc_walkers = Variable('spectral_mcmc_walkers', 'SPMCMCW', 50, int, 'u')
+        self.spectral_mcmc_burned_iterations = Variable('spectral_mcmc_burned_iterations', 'SPMCMCB', 10000, int, 'u')
 
     def from_parameters_file(self, parameters_file=None, data_directory=None):
 
@@ -459,7 +461,7 @@ class Variables:
             raise IraclisInputError('You should give as input either a parameters file '
                                     '(which includes a data directory path), '
                                     'OR a data directory path '
-                                    '(if you want to run in default parameters).')
+                                    '(if you want to run with default parameters).')
 
         elif parameters_file:
 
@@ -955,7 +957,7 @@ class DataSet:
         if not self.direct_image:
             raise IraclisFileError('A direct image is necessary.')
 
-    def save(self, export_directory, arrange=True, export_pipeline_variables_file='variables.txt'):
+    def save(self, export_directory, arrange=True):
 
         if os.path.isdir(export_directory):
             backup = '{0}_{1}'.format(export_directory, time.strftime('%y-%m-%d_%H-%M-%S'))
@@ -991,9 +993,6 @@ class DataSet:
             card = int(str(e.args)[4:-4].split('\\n')[2].replace('Card ', '').replace(':', ''))
             del copy_of_file[hdu].header[card]
             copy_of_file.writeto(os.path.join(export_directory, 'direct_image.fits'), output_verify='fix')
-
-        if export_pipeline_variables_file:
-            variables.save(os.path.join(export_directory, export_pipeline_variables_file))
 
     def copy_split(self, split_number):
 
@@ -1045,3 +1044,185 @@ class PipelineCounter:
         if self.current_iteration == self.total_iterations and self.total_iterations > 1:
             print('')
 
+
+class Tools:
+
+    def __init__(self):
+        pass
+
+    def central_crop(self, original_array, destination_fits):
+
+        crop1 = len(original_array) / 2 - len(destination_fits[1].data) / 2
+        crop2 = len(original_array) / 2 + len(destination_fits[1].data) / 2
+
+        return original_array[crop1:crop2, crop1:crop2]
+
+    def box(self, x_arr, x0, aa, bb, cc):
+        return aa * np.exp(-np.power(np.power(x0 - x_arr, 2) / (2 * (bb ** 2)), cc))
+
+    def fit_box(self, datax, datay):
+
+        minlim = datax[np.argmax(datay[5:] - datay[:-5])]
+        maxlim = datax[np.argmin(datay[5:] - datay[:-5])]
+
+        for expand in range(10, 30):
+            datax = np.append(datax, max(datax) + expand)
+            datay = np.append(datay, 0)
+            datax = np.append(datax, min(datax) - expand)
+            datay = np.append(datay, 0)
+
+        popt, pcov = curve_fit(self.box, datax, datay,
+                               p0=[0.5 * (maxlim + minlim), max(datay), 0.5 * (maxlim - minlim), 1.0])
+
+        center = popt[0]
+
+        center_err = np.sqrt(pcov[0][0])
+
+        fwhm = popt[2] * 2.0 * np.sqrt(2.0 * (np.log(2) ** (1.0 / popt[3])))
+
+        s, c = popt[2], popt[3]
+        ss, cs = np.sqrt(pcov[2][2]), np.sqrt(pcov[3][3])
+        fwhm_err = np.sqrt(8.0 * (ss ** 2) * (np.log(2.0) ** (1.0 / c))
+                           + (2.0 * (cs ** 2) * (s ** 2) * (np.log(2.0) ** (1.0 / c))
+                              * (np.log(np.log(2.0)) ** 2)) / (c ** 4))
+
+        return center, center_err, fwhm, fwhm_err, popt
+
+    def fit_line(self, datax, datay):
+
+        mx = np.mean(datax)
+        my = np.mean(datay)
+
+        ssxx = np.sum((datax - mx) ** 2)
+        ssyy = np.sum((datay - my) ** 2)
+        ssxy = np.sum((datax - mx) * (datay - my))
+
+        bb = ssxy / ssxx
+        aa = my - bb * mx
+
+        n = len(datax)
+        sss = np.sqrt((ssyy - bb * ssxy) / (n - 2))
+
+        aerr = sss * np.sqrt(1.0 / n + (mx ** 2) / ssxx)
+        berr = sss / np.sqrt(ssxx)
+
+        return aa, bb, aerr, berr
+
+    def correlation(self, x, y):
+        n = len(x)
+        mx = np.mean(x)
+        sx = np.std(x)
+        my = np.mean(y)
+        sy = np.std(y)
+        return np.round(np.sum((x - mx) * (y - my)) / ((n - 1) * sx * sy), 2)
+
+    def save_figure(self, directory, name, figure=None):
+
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+
+        if not figure:
+            plt.savefig(directory + '/{0}.eps'.format(name), bbox_inches='tight')
+            plt.close()
+        else:
+            figure.savefig(directory + '/{0}.eps'.format(name), bbox_inches='tight')
+
+
+    def adjust_ticks(self):
+        xlim1, xlim2 = plt.xlim()
+        xticks = plt.xticks()[0]
+        digit = max([len(ff) for ff in str(np.abs(xticks) - np.int_(np.abs(xticks)))[1:-1].split()]) - 2
+        xticklabels = ['{1:.{0}f}'.format(digit, ii) for ii in xticks]
+        dxticks = xticks[1] - xticks[0]
+
+        if xticks[1] - dxticks / 2 < xlim1:
+            new_xlim1 = xticks[1] - dxticks / 2
+            xticks = xticks[1:]
+            xticklabels = xticklabels[1:]
+        else:
+            new_xlim1 = xticks[0] - dxticks / 2
+
+        if xticks[-2] + dxticks / 2 > xlim2:
+            new_xlim2 = xticks[-2] + dxticks / 2
+            xticks = xticks[:-1]
+            xticklabels = xticklabels[:-1]
+        else:
+            new_xlim2 = xticks[-1] + dxticks / 2
+
+        plt.xticks(xticks, xticklabels, fontsize=15)
+        plt.xlim(new_xlim1, new_xlim2)
+
+        ylim1, ylim2 = plt.ylim()
+        yticks = plt.yticks()[0]
+        digit = max([len(ff) for ff in str(np.abs(yticks) - np.int_(np.abs(yticks)))[1:-1].split()]) - 2
+        yticklabels = ['{1:.{0}f}'.format(digit, ii) for ii in yticks]
+        dyticks = yticks[1] - yticks[0]
+
+        if yticks[1] - dyticks / 2 < ylim1:
+            new_ylim1 = yticks[1] - dyticks / 2
+            yticks = yticks[1:]
+            yticklabels = yticklabels[1:]
+        else:
+            new_ylim1 = yticks[0] - dyticks / 2
+
+        if yticks[-2] + dyticks / 2 > ylim2:
+            new_ylim2 = yticks[-2] + dyticks / 2
+            yticks = yticks[:-1]
+            yticklabels = yticklabels[:-1]
+        else:
+            new_ylim2 = yticks[-1] + dyticks / 2
+
+        plt.yticks(yticks, yticklabels, fontsize=15)
+        plt.ylim(new_ylim1, new_ylim2)
+
+
+    def adjust_ticks_ax(self, ax):
+        xlim1, xlim2 = ax.get_xlim()
+        xticks = ax.get_xticks()
+        digit = max([len(ff) for ff in str(np.abs(xticks) - np.int_(np.abs(xticks)))[1:-1].split()]) - 2
+        xticklabels = ['{1:.{0}f}'.format(digit, ii) for ii in xticks]
+        dxticks = xticks[1] - xticks[0]
+
+        if xticks[1] - dxticks / 2 < xlim1:
+            new_xlim1 = xticks[1] - dxticks / 2
+            xticks = xticks[1:]
+            xticklabels = xticklabels[1:]
+        else:
+            new_xlim1 = xticks[0] - dxticks / 2
+
+        if xticks[-2] + dxticks / 2 > xlim2:
+            new_xlim2 = xticks[-2] + dxticks / 2
+            xticks = xticks[:-1]
+            xticklabels = xticklabels[:-1]
+        else:
+            new_xlim2 = xticks[-1] + dxticks / 2
+
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels, fontsize=15)
+        ax.set_xlim(new_xlim1, new_xlim2)
+
+        ylim1, ylim2 = ax.get_ylim()
+        yticks = ax.get_yticks()
+        digit = max([len(ff) for ff in str(np.abs(yticks) - np.int_(np.abs(yticks)))[1:-1].split()]) - 2
+        yticklabels = ['{1:.{0}f}'.format(digit, ii) for ii in yticks]
+        dyticks = yticks[1] - yticks[0]
+
+        if yticks[1] - dyticks / 2 < ylim1:
+            new_ylim1 = yticks[1] - dyticks / 2
+            yticks = yticks[1:]
+            yticklabels = yticklabels[1:]
+        else:
+            new_ylim1 = yticks[0] - dyticks / 2
+
+        if yticks[-2] + dyticks / 2 > ylim2:
+            new_ylim2 = yticks[-2] + dyticks / 2
+            yticks = yticks[:-1]
+            yticklabels = yticklabels[:-1]
+        else:
+            new_ylim2 = yticks[-1] + dyticks / 2
+
+        ax.set_yticks(yticks)
+        ax.set_yticklabels(yticklabels, fontsize=15)
+        ax.set_ylim(new_ylim1, new_ylim2)
+
+tools = Tools()

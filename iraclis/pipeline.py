@@ -2,16 +2,14 @@
 import os
 import glob
 import time
-import numpy as np
-import pickle
 import shutil
 import pylightcurve as plc
 
 from astropy.io import fits
-from scipy.optimize import curve_fit
 from urllib.request import urlretrieve
 
-from iraclis.__errors__ import *
+from iraclis import __version__
+from iraclis.errors import *
 from iraclis.classes import *
 from iraclis.images1_reduction import *
 from iraclis.images2_calibration import *
@@ -22,7 +20,7 @@ from iraclis.lightcurves1_fitting import *
 def process_visit(parameters_file=None, data_directory=None, procedure=None, par_string=None):
 
     print('')
-    print('Iraclis log')
+    print('Iraclis {0}'.format(__version__))
 
     # user inputs
 
@@ -98,8 +96,6 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
             for fits_file in glob.glob(os.path.join(directory, '*.fits')):
                 shutil.move(fits_file, os.path.join(raw_data_directory, os.path.split(fits_file)[1]))
 
-    print('')
-
     # reduction and calibration
 
     if variables.reduction.value:
@@ -124,6 +120,7 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
         print('Saving reduced frames in {} ...'.format(os.path.split(reduced_data_directory)[1]))
         data_set.save(reduced_data_directory)
         del data_set
+        variables.save(os.path.join(reduced_data_directory, 'parameters.txt'))
         print('')
 
     # splitting
@@ -261,6 +258,8 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
         del data_set
 
+        variables.save(os.path.join(output_directory, 'parameters.txt'))
+
         print('')
 
     # fitting the white and the spectral light curves
@@ -275,6 +274,8 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
         print('Saving fitting plots in {} ...'.format(os.path.split(fitting_figures_directory)[1]))
         plot_fitting(light_curve, fitting_figures_directory)
+
+        variables.save(os.path.join(output_directory, 'parameters.txt'))
 
         print('')
 
@@ -292,6 +293,8 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
         print('Saving fitting plots in {} ...'.format(os.path.split(fitting_figures_directory)[1]))
         plot_fitting(light_curve, fitting_figures_directory)
+
+        variables.save(os.path.join(output_directory, 'parameters.txt'))
 
         print('')
 
@@ -314,188 +317,9 @@ def process_visit(parameters_file=None, data_directory=None, procedure=None, par
 
             print('')
 
-    print ('Processed directory: ', os.path.split(directory)[1])
-    print ('                  @: ', os.path.split(directory)[0])
+    print('Processed directory: ', os.path.split(directory)[1])
+    print('                  @: ', os.path.split(directory)[0])
     print('')
-
-
-def download_visit(vist):
-    pass
-
-
-def white_global_fit_detrended(list_of_files, output_directory,
-                               method=False,
-                               iterations=200000, walkers=200, burn=150000, precision=3,
-                               fit_ld=False, fit_period=False, fit_sma_over_rs=False, fit_inclination=False):
-
-    datasets = list(list_of_files)
-    datasets.sort()
-    datasets = [pickle.load(open(ff))['lightcurves']['white'] for ff in datasets]
-
-    if fit_period:
-        mid_time = datasets[0]['parameters']['t_0']['value']
-        period = datasets[0]['parameters']['P']['value']
-        xdata = []
-        ydata = []
-        yerror = []
-        for num, dataset in enumerate(datasets):
-            print(dataset['parameters']['t_0']['value'])
-            xdata.append(round((dataset['parameters']['t_0']['value'] -
-                                datasets[0]['parameters']['t_0']['value'])/period))
-            ydata.append(dataset['parameters']['t_0']['value'])
-            yerror.append(max(dataset['parameters']['t_0']['m_error'], dataset['parameters']['t_0']['p_error']))
-
-        xdata = np.array(xdata)
-        ydata = np.array(ydata)
-        yerror = np.array(yerror)
-
-        def model(x, a, b):
-            return x * a + b
-
-        best_fit, covariance = curve_fit(model, xdata, ydata, sigma=yerror, p0=[period, mid_time], maxfev=20000)
-
-        period, mid_time = best_fit
-        print(period, np.sqrt(covariance[0][0]))
-
-    else:
-        period = datasets[0]['parameters']['P']['value']
-
-    data = []
-    for num, dataset in enumerate(datasets):
-        data.append([(dataset['input_time_series']['hjd'] -
-                      dataset['parameters']['t_0']['value'] + 1000.0 + num * period),
-                     dataset['input_time_series']['raw_lc']/dataset['output_time_series']['systematics'],
-                     dataset['input_time_series']['raw_lc_error']/dataset['output_time_series']['systematics']
-                     ])
-
-    datasets = datasets[:1]
-
-    if not method:
-        method = datasets[0]['limb_darkening']['method']
-
-    limb_darkening_coefficients = 'fit'
-    if not fit_ld:
-        if method == 'linear':
-            limb_darkening_coefficients = [datasets[0]['parameters']['ldc_1']['value']]
-        elif method in ['quad', 'sqrt']:
-            limb_darkening_coefficients = [datasets[0]['parameters']['ldc_1']['value'],
-                                           datasets[0]['parameters']['ldc_2']['value']]
-        elif method == 'claret':
-            limb_darkening_coefficients = [datasets[0]['parameters']['ldc_1']['value'],
-                                           datasets[0]['parameters']['ldc_2']['value'],
-                                           datasets[0]['parameters']['ldc_3']['value'],
-                                           datasets[0]['parameters']['ldc_4']['value']]
-
-    fit_rp_over_rs = [datasets[0]['parameters']['rp']['value'] / 2, datasets[0]['parameters']['rp']['value'] * 2]
-    if fit_sma_over_rs:
-        fit_sma_over_rs = [datasets[0]['parameters']['a']['value'] / 2, datasets[0]['parameters']['a']['value'] * 2]
-    if fit_inclination:
-        fit_inclination = [datasets[0]['parameters']['i']['value'] - 10, 90]
-
-    mcmc = plc.TransitAndPolyFitting(
-        data=data,
-        method=method,
-        limb_darkening_coefficients=limb_darkening_coefficients,
-        rp_over_rs=datasets[0]['parameters']['rp']['value'],
-        period=period,
-        sma_over_rs=datasets[0]['parameters']['a']['value'],
-        eccentricity=datasets[0]['parameters']['e']['value'],
-        inclination=datasets[0]['parameters']['i']['value'],
-        periastron=datasets[0]['parameters']['omega']['value'],
-        mid_time=1000.0,
-        iterations=iterations,
-        walkers=walkers,
-        burn=burn,
-        precision=precision,
-        time_factor=int(round(datasets[0]['exposure']['exp_time']/datasets[0]['exposure']['model_resolution'])),
-        exp_time=datasets[0]['exposure']['exp_time'],
-        fit_first_order=False,
-        fit_second_order=False,
-        fit_rp_over_rs=fit_rp_over_rs,
-        fit_sma_over_rs=fit_sma_over_rs,
-        fit_inclination=fit_inclination,
-        )
-
-    mcmc.run_mcmc()
-
-    if not os.path.isdir(output_directory):
-        os.mkdir(output_directory)
-
-    mcmc.save_all(os.path.join(output_directory, 'data_base.pickle'))
-    mcmc.save_results(os.path.join(output_directory, 'results.txt'))
-    mcmc.plot_corner(os.path.join(output_directory, 'correlations.pdf'))
-    mcmc.plot_traces(os.path.join(output_directory, 'traces.pdf'))
-    mcmc.plot_models(os.path.join(output_directory, 'full_models.pdf'))
-    mcmc.plot_detrended_models(os.path.join(output_directory, 'detrended_models.pdf'))
-
-
-def spectral_global_fit_detrended(list_of_files, lc_id, output_directory,
-                                  method=False,
-                                  iterations=200000, walkers=200, burn=150000, precision=3,
-                                  fit_ld=False):
-
-    datasets = list(list_of_files)
-    datasets.sort()
-    datasets = [pickle.load(open(ff, 'rb'))['lightcurves'][lc_id] for ff in datasets]
-
-    data = []
-    for dataset in datasets:
-        data.append([dataset['input_time_series']['hjd'] - dataset['parameters']['t_0']['value'] + 1000.0,
-                     dataset['input_time_series']['relative_lc']/dataset['output_time_series']['systematics'],
-                     dataset['input_time_series']['relative_lc_error']/dataset['output_time_series']['systematics']
-                     ])
-
-    datasets = datasets[:1]
-
-    if not method:
-        method = datasets[0]['limb_darkening']['method']
-
-    limb_darkening_coefficients = 'fit'
-    if not fit_ld:
-        if method == 'linear':
-            limb_darkening_coefficients = [datasets[0]['parameters']['ldc_1']['value']]
-        elif method in ['quad', 'sqrt']:
-            limb_darkening_coefficients = [datasets[0]['parameters']['ldc_1']['value'],
-                                           datasets[0]['parameters']['ldc_2']['value']]
-        elif method == 'claret':
-            limb_darkening_coefficients = [datasets[0]['parameters']['ldc_1']['value'],
-                                           datasets[0]['parameters']['ldc_2']['value'],
-                                           datasets[0]['parameters']['ldc_3']['value'],
-                                           datasets[0]['parameters']['ldc_4']['value']]
-
-    mcmc = plc.TransitAndPolyFitting(
-        data=data,
-        method=method,
-        limb_darkening_coefficients=limb_darkening_coefficients,
-        rp_over_rs=datasets[0]['parameters']['rp']['value'],
-        period=datasets[0]['parameters']['P']['value'],
-        sma_over_rs=datasets[0]['parameters']['a']['value'],
-        eccentricity=datasets[0]['parameters']['e']['value'],
-        inclination=datasets[0]['parameters']['i']['value'],
-        periastron=datasets[0]['parameters']['omega']['value'],
-        mid_time=1000.0,
-        iterations=iterations,
-        walkers=walkers,
-        burn=burn,
-        precision=precision,
-        time_factor=int(round(datasets[0]['exposure']['exp_time']/datasets[0]['exposure']['model_resolution'])),
-        exp_time=datasets[0]['exposure']['exp_time'],
-        fit_first_order=False,
-        fit_second_order=False,
-        fit_rp_over_rs=[datasets[0]['parameters']['rp']['value'] / 2, datasets[0]['parameters']['rp']['value'] * 2]
-        )
-
-    mcmc.run_mcmc()
-
-    if not os.path.isdir(output_directory):
-        os.mkdir(output_directory)
-
-    mcmc.save_all(os.path.join(output_directory, 'data_base.pickle'))
-    mcmc.save_results(os.path.join(output_directory, 'results.txt'))
-    mcmc.plot_corner(os.path.join(output_directory, 'correlations.pdf'))
-    mcmc.plot_traces(os.path.join(output_directory, 'traces.pdf'))
-    mcmc.plot_models(os.path.join(output_directory, 'full_models.pdf'))
-    mcmc.plot_detrended_models(os.path.join(output_directory, 'detrended_models.pdf'))
 
 
 def run_test():
@@ -646,54 +470,53 @@ def run_test():
         '# number/default                                ',
         '                                                ',
         '# Comment: When the above parameters are set '
-        'to default, the claret limb-darkening method '
-        'will be used.                                   ',
-        '# The white light-curve limits will be '
-        '10880.0 - 16800.0 Angstroms for G141 and '
-        '8000 - 11500 Angstroms for G102.                ',
+        'to default, the white light-curve limits will '
+        'be 10880.0 - 16800.0 Angstroms for G141 and '
+        '8000.0 - 11500.0 Angstroms for G102.            ',
         '                                                ',
         'bins_file                          default_low  ',
         '# file path/default_high/default_low/default_'
         'vlow                                            ',
-        '# an example of a bins file can be found in '
+        '                                                ',
+        '# Comment: A bins file should contain 4 '
+        'columns: '
+        '1 - bins lower edge in Angstrom, '
+        '2 - bins upper edge in Angstrom, '
+        '3 - first limb darkening coefficient, '
+        '4 - second limb darkening coefficient, '
+        '5 - third limb darkening coefficient, '
+        '6 - forth limb darkening coefficient. '
+        'An example of a bins file can be found in '
         'iraclis_test_dataset_hatp26b_bins.txt           ',
         '                                                ',
-        '# Comment: You can set the above parameter to '
-        'default_high, default_low or default_vlow. In '
-        'this case, the claret                           ',
-        '# limb-darkening method will be used. Be '
-        'careful to avoid conflicts, as the '
-        'limb-darkening method used between spectral     ',
-        '# and white light curves should be the same.    ',
-        '                                                ',
-        'planet                             HAT-P-26 b   ',
-        '# name/auto                                     ',
-        'star_teff                          5079         ',
+        'planet                             auto         ',
+        '# name - no spaces/auto                         ',
+        'star_teff                          auto         ',
         '# number/auto                                   ',
-        'star_logg                          4.56         ',
+        'star_logg                          auto         ',
         '# number/auto                                   ',
-        'star_meta                          -0.04        ',
+        'star_meta                          auto         ',
         '# number/auto                                   ',
-        'rp_over_rs                         0.0715       ',
+        'rp_over_rs                         auto         ',
         '# number/auto                                   ',
-        'fp_over_fs                         0.0001       ',
+        'fp_over_fs                         auto         ',
         '# number/auto                                   ',
-        'period                             4.234515     ',
+        'period                             auto         ',
         '# number/auto                                   ',
-        'sma_over_rs                        13.44        ',
+        'sma_over_rs                        auto         ',
         '# number/auto                                   ',
-        'eccentricity                       0.0          ',
+        'eccentricity                       auto         ',
         '# number/auto                                   ',
-        'inclination                        88.6         ',
+        'inclination                        auto         ',
         '# number/auto                                   ',
-        'periastron                         0.0          ',
+        'periastron                         auto         ',
         '# number/auto                                   ',
-        'mid_time                           2455304.65118',
+        'mid_time                           auto         ',
         '# number/auto                                   ',
         '                                                ',
         '# Comment: You can set any of the above 12 '
-        'parameters to auto, to use the data from the '
-        'Open Exoplanet Catalogue.                       ',
+        'parameters to auto, to use the data from '
+        'a built-in catalogue.                           ',
         '                                                ',
         'apply_up_down_stream_correction    False        ',
         '# True/False                                    ',

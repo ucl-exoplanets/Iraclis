@@ -45,44 +45,41 @@ white_ldc3                         default
 white_ldc4                         default
 # number/default
 
-# Comment: When the above parameters are set to default, the claret limb-darkening method will be used.
-# The white light-curve limits will be 10880.0 - 16800.0 Angstroms for G141 and 8000 - 11500 Angstroms
-# for G102.
+# Comment: When the above parameters are set to default, the white light-curve limits will be 10880.0 - 16800.0
+# Angstroms for G141 and 8000 - 11500 Angstroms for G102.
 
 bins_file                          default_high
 # file path/default_high/default_low/default_vlow
-# an example of a bins file can be found in iraclis_test_dataset_hatp26b_bins.txt
+# Comment: A bins file should contain 4 columns: 1 - bins lower edge in Angstrom, 2 - bins upper edge in Angstrom,
+# 3 - first limb darkening coefficient, 4 - second limb darkening coefficient, 5 - third limb darkening coefficient,
+# 6 - forth limb darkening coefficient. An example of a bins file can be found in iraclis_test_dataset_hatp26b_bins.txt
 
-# Comment: You can set the above parameter to default_high, default_low or default_vlow. In this case, the claret
-# limb-darkening method will be used. Be careful to avoid conflicts, as the limb-darkening method used between spectral
-# and white light curves should be the same.
-
-planet                             HAT-P-26 b
-# name/auto
-star_teff                          5079
+planet                             auto
+# name - no spaces/auto
+star_teff                          auto
 # number/auto
-star_logg                          4.56
+star_logg                          auto
 # number/auto
-star_meta                          -0.04
+star_meta                          auto
 # number/auto
-rp_over_rs                         0.0715
+rp_over_rs                         auto
 # number/auto
-fp_over_fs                         0.0001
+fp_over_fs                         auto
 # number/auto
-period                             4.234515
+period                             auto
 # number/auto
-sma_over_rs                        13.44
+sma_over_rs                        auto
 # number/auto
-eccentricity                       0.0
+eccentricity                       auto
 # number/auto
-inclination                        88.6
+inclination                        auto
 # number/auto
-periastron                         0.0
+periastron                         auto
 # number/auto
-mid_time                           2455304.65118
+mid_time                           auto
 # number/auto
 
-# Comment: You can set any of the above 12 parameters to auto, to use the data from the Open Exoplanet Catalogue.
+# Comment: You can set any of the above 12 parameters to auto, to use the data from a built-in catalogue.
 
 apply_up_down_stream_correction    False
 # True/False

@@ -28,24 +28,7 @@ from iraclis.classes import *
 
 def timing(input_data):
     """
-    Heliocentric julian date calculation.
-
-    Calculates the heliocentric julian date of the mid-exposure (hjd):
-
-    .. math:: hjd = jd - (d / c) (\sin(d) \sin(ds_{jd}) + \cos(d) \cos(ds_{jd}) \cos(a - as_{jd})
-
-    with:
-
-    .. math:: jd = 0.5 (exp_s + exp_e) + 2400000.5
-
-    where:
-
-    jd is the julian date of the mid-exposure,
-    d is the distance between the earth and the sun, 149597870700.0 km,
-    c is the speed of light, 25902068371200.0 km/day,
-    exp_s and exp_e are the exposure start and end times in modified julian date (included in the data file),
-    a and d are the target RA and DEC (included in the data file) and
-    as_jd and ds_jd are the sun RA and DEC at the julian date of the mid-exposure.
+    Coverts time to BJD_tdb.
 
     Parameters
     ----------
@@ -55,7 +38,7 @@ def timing(input_data):
     Returns
     -------
     input_data : HDUList or DataSet object
-        updated version of the input_data object, including the heliocentric julian date of the mid-exposure
+        updated version of the input_data object, including the bjd_tdb of the mid-exposure
 
     """
 
@@ -65,7 +48,9 @@ def timing(input_data):
     exposure_end = variables.exposure_end.custom()
     ra_target = variables.ra_target.custom()
     dec_target = variables.dec_target.custom()
-    heliocentric_julian_date = variables.heliocentric_julian_date.custom()
+    bjd_tdb = variables.bjd_tdb.custom()
+
+    target = None
 
     # initiate counter
 
@@ -79,13 +64,16 @@ def timing(input_data):
 
         exposure_start.from_fits(fits)
         exposure_end.from_fits(fits)
-        ra_target.from_fits(fits)
-        dec_target.from_fits(fits)
+
+        if not target:
+            ra_target.from_fits(fits)
+            dec_target.from_fits(fits)
+            target = plc.FixedTarget(plc.Degrees(ra_target.value), plc.Degrees(dec_target.value))
 
         # calculate the heliocentric julian date of the mid-exposure
 
-        heliocentric_julian_date.to_fits(fits, value=plc.mjd_to_hjd(ra_target.value, dec_target.value,
-                                                                    0.5 * (exposure_start.value + exposure_end.value)))
+        bjd_tdb.to_fits(fits,
+                        value=target.convert_to_bjd_tdb(0.5 * (exposure_start.value + exposure_end.value), 'MJD_UTC'))
 
         # update counter
 
@@ -662,7 +650,8 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
                 frame = differential_science[i][10:-10, 10:-10]
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    frame_mean, frame_std = plc.fit_one_d_distribution_gaussian(frame, step=10.0)[2][-2:]
+                    frame_mean, frame_std = plc.one_d_distribution(frame, step=10.0, gaussian_fit=True,
+                                                                   mad_filter=10)[2:4]
                 frame_std = np.abs(frame_std)
 
                 check_array = (np.abs(frame - frame_mean) < sky_detection_limit.value * frame_std)
@@ -678,7 +667,8 @@ def sky(input_data, sky_detection_limit=None, splitting=False):
 
             sky_area = np.where(np.all(np.array(differential_science), 0))
             if len(sky_area[0]) == 0:
-                sky_area = np.where(np.sum(np.array(differential_science), 0) > 0.75 * len(np.array(differential_science)))
+                sky_area = np.where(
+                    np.sum(np.array(differential_science), 0) > 0.75 * len(np.array(differential_science)))
             sky_area = (sky_area[0] + 10, sky_area[1] + 10)
 
             # save the sky area in the fits file (0 is where the pixels is illuminated only by the sky background)
@@ -935,7 +925,7 @@ def bpcr(input_data, cr_detection_limit=None, cr_neighbours=None, use_bpcr_fast_
         # scan or no scan
 
         data = np.sum(fits[1].data, 0)
-        model = plc.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
+        model = tools.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
         dx = np.argmax(np.convolve(data, model)) - np.argmax(np.convolve(model, model))
         x_lim1, x_lim2 = int(len(data) / 2 + dx - 55), int(len(data) / 2 + dx + 55)
 

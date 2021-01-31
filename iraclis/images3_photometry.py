@@ -405,7 +405,7 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
     grism = variables.grism.custom()
     exposure_time = variables.exposure_time.custom()
     bins_number = variables.bins_number.custom()
-    heliocentric_julian_date = variables.heliocentric_julian_date.custom()
+    bjd_tdb = variables.bjd_tdb.custom()
     spectrum_direction = variables.spectrum_direction.custom()
     sky_background_level = variables.sky_background_level.custom()
     y_star = variables.y_star.custom()
@@ -414,7 +414,7 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
     x_shift_error = variables.x_shift_error.custom()
     scan_length = variables.scan_length.custom()
     scan_length_error = variables.scan_length_error.custom()
-    heliocentric_julian_date_array = variables.heliocentric_julian_date_array.custom()
+    bjd_tdb_array = variables.bjd_tdb_array.custom()
     spectrum_direction_array = variables.spectrum_direction_array.custom()
     sky_background_level_array = variables.sky_background_level_array.custom()
     x_star_array = variables.x_star_array.custom()
@@ -483,9 +483,9 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
 
             extraction_gauss_sigma.to_dictionary(light_curve)
 
-        heliocentric_julian_date.from_fits(fits)
-        heliocentric_julian_date_array.set(
-            np.append(heliocentric_julian_date_array.value, heliocentric_julian_date.value))
+        bjd_tdb.from_fits(fits)
+        bjd_tdb_array.set(
+            np.append(bjd_tdb_array.value, bjd_tdb.value))
 
         spectrum_direction.from_fits(fits)
         spectrum_direction_array.set(np.append(spectrum_direction_array.value, spectrum_direction.value))
@@ -561,7 +561,7 @@ def photometry(input_data, white_lower_wavelength=None, white_upper_wavelength=N
             plt.ylabel(r'$\mathrm{e}^{-} \, (\times 10^6)$', fontsize=20)
             plt.xlabel(r'$\lambda \, [\mu \mathrm{m}]$', fontsize=20)
 
-    for i in [heliocentric_julian_date_array, spectrum_direction_array, sky_background_level_array, x_star_array,
+    for i in [bjd_tdb_array, spectrum_direction_array, sky_background_level_array, x_star_array,
               x_shift_error_array, y_star_array, y_shift_error_array, scan_length_array, scan_length_error_array,
               white_dictionary] + bins_dictionaries:
         i.to_dictionary(light_curve)
@@ -593,7 +593,7 @@ def split_photometry(input_data, white_lower_wavelength=None, white_upper_wavele
     grism = variables.grism.custom()
     exposure_time = variables.exposure_time.custom()
     bins_number = variables.bins_number.custom()
-    heliocentric_julian_date_array = variables.heliocentric_julian_date_array.custom()
+    bjd_tdb_array = variables.bjd_tdb_array.custom()
     spectrum_direction_array = variables.spectrum_direction_array.custom()
     sky_background_level_array = variables.sky_background_level_array.custom()
     x_star_array = variables.x_star_array.custom()
@@ -723,8 +723,8 @@ def split_photometry(input_data, white_lower_wavelength=None, white_upper_wavele
             extraction_gauss_sigma.from_dictionary(light_curve)
             extraction_gauss_sigma.to_dictionary(final_light_curve)
 
-            heliocentric_julian_date_array.from_dictionary(light_curve)
-            heliocentric_julian_date_array.to_dictionary(final_light_curve)
+            bjd_tdb_array.from_dictionary(light_curve)
+            bjd_tdb_array.to_dictionary(final_light_curve)
 
             spectrum_direction_array.from_dictionary(light_curve)
             spectrum_direction_array.to_dictionary(final_light_curve)
@@ -787,7 +787,7 @@ def plot_photometry(dataset, lightcurve, directory):
     forward_colour = 'k'
     reverse_colour = 'r'
 
-    hjd_time = lightcurve[variables.heliocentric_julian_date_array.keyword]
+    hjd_time = lightcurve[variables.bjd_tdb_array.keyword]
     flux = lightcurve[variables.white_dictionary.keyword][variables.flux_array.keyword]
     ssky = lightcurve[variables.sky_background_level_array.keyword]
     scan = lightcurve[variables.spectrum_direction_array.keyword]
@@ -814,8 +814,8 @@ def plot_photometry(dataset, lightcurve, directory):
                 figures = photometry(dataset, plot=True)[1]
             dataset.spectroscopic_images = original
 
-        plc.save_figure(directory, figure=figures[0], name='forward_extraction_aperture')
-        plc.save_figure(directory, figure=figures[1], name='forward_stellar_spectrum')
+        tools.save_figure(directory, figure=figures[0], name='forward_extraction_aperture')
+        tools.save_figure(directory, figure=figures[1], name='forward_stellar_spectrum')
 
         plt.close('all')
 
@@ -835,8 +835,8 @@ def plot_photometry(dataset, lightcurve, directory):
                 warnings.simplefilter("ignore")
                 figures = photometry(dataset, plot=True)[1]
 
-        plc.save_figure(directory, figure=figures[0], name='reverse_extraction_aperture')
-        plc.save_figure(directory, figure=figures[1], name='reverse_stellar_spectrum')
+        tools.save_figure(directory, figure=figures[0], name='reverse_extraction_aperture')
+        tools.save_figure(directory, figure=figures[1], name='reverse_stellar_spectrum')
 
         plt.close('all')
 
@@ -847,7 +847,7 @@ def plot_photometry(dataset, lightcurve, directory):
              'o', c=reverse_colour, mec=reverse_colour, ms=3)
     plt.ylabel(r'$\mathrm{e}^{-} \, (\times 10^8)$', fontsize=15)
     plt.tick_params(labelbottom=False)
-    plc.adjust_ticks()
+    tools.adjust_ticks()
     plt.subplot(2, 1, 2)
     plt.plot((np.array(hjd_time) - hjd_time[0])[forward], np.array(ssky)[forward],
              'o', c=forward_colour, mec=forward_colour, ms=3)
@@ -855,6 +855,6 @@ def plot_photometry(dataset, lightcurve, directory):
              'o', c=reverse_colour, mec=reverse_colour, ms=3)
     plt.xlabel(r'$\Delta t \, \mathrm{(days)}$', fontsize=15)
     plt.ylabel(r'$\mathrm{sky} \, \mathrm{ratio}$', fontsize=15)
-    plc.adjust_ticks()
+    tools.adjust_ticks()
     plt.subplots_adjust(hspace=0)
-    plc.save_figure(directory, name='raw_light_curve')
+    tools.save_figure(directory, name='raw_light_curve')

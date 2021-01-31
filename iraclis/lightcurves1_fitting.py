@@ -22,7 +22,7 @@ from scipy.optimize import curve_fit
 from sklearn.decomposition import FastICA, PCA
 from matplotlib import pyplot as plt
 
-from iraclis.__errors__ import *
+from iraclis.errors import *
 from iraclis.classes import *
 
 
@@ -102,8 +102,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     grism = variables.grism.custom()
     grism.from_dictionary(light_curve)
 
-    heliocentric_julian_date_array = variables.heliocentric_julian_date_array.custom()
-    heliocentric_julian_date_array.from_dictionary(light_curve)
+    bjd_tdb_array = variables.bjd_tdb_array.custom()
+    bjd_tdb_array.from_dictionary(light_curve)
 
     spectrum_direction_array = variables.spectrum_direction_array.custom()
     spectrum_direction_array.from_dictionary(light_curve)
@@ -271,12 +271,12 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     # exclude orbits / points
 
-    indices_to_remain = np.arange(len(heliocentric_julian_date_array.value))
+    indices_to_remain = np.arange(len(bjd_tdb_array.value))
 
     if exclude_initial_orbits.value > 0:
         print('Excluding {0} orbit{1} from the beginning of the visit ...'.format(
             exclude_initial_orbits.value, ['s', ''][1 // exclude_initial_orbits.value]))
-        htime = heliocentric_julian_date_array.value
+        htime = bjd_tdb_array.value
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
 
         indices_to_remain = indices_to_remain[orbits[exclude_initial_orbits.value]:]
@@ -284,7 +284,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     if exclude_final_orbits.value > 0:
         print('Excluding {0} orbit{1} from the end of the visit ...'.format(
             exclude_final_orbits.value, ['s', ''][1 // exclude_final_orbits.value]))
-        htime = heliocentric_julian_date_array.value[indices_to_remain]
+        htime = bjd_tdb_array.value[indices_to_remain]
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
 
         indices_to_remain = indices_to_remain[:orbits[-exclude_final_orbits.value]]
@@ -292,13 +292,13 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     if exclude_initial_orbit_points.value > 0:
         print('Excluding {0} point{1} from the beginning of each orbit ...'.format(
             exclude_initial_orbit_points.value, ['s', ''][1 // exclude_initial_orbit_points.value]))
-        htime = heliocentric_julian_date_array.value[indices_to_remain]
+        htime = bjd_tdb_array.value[indices_to_remain]
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
 
         indices_to_remain = np.delete(indices_to_remain,
                                       np.concatenate([orbits + i for i in range(exclude_initial_orbit_points.value)]))
 
-    for i in [heliocentric_julian_date_array, spectrum_direction_array, sky_background_level_array,
+    for i in [bjd_tdb_array, spectrum_direction_array, sky_background_level_array,
               star_x_position_array, x_shift_error_array, star_y_position_array, y_shift_error_array, scan_length_array,
               scan_length_error_array]:
 
@@ -322,7 +322,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     # define hst orbital phases
 
     if mid_orbit_ramps.value:
-        htime = heliocentric_julian_date_array.value
+        htime = bjd_tdb_array.value
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 20.0 / 60.0 / 24.0)[0]
         dumps = np.where(abs(htime - np.roll(htime, 1)) > 5.0 / 60.0 / 24.0)[0]
         dphase = np.zeros(len(htime))
@@ -335,11 +335,11 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                     for j in range(dumps[i], len(dphase)):
                         dphase[j] = 1
     else:
-        htime = heliocentric_julian_date_array.value
+        htime = bjd_tdb_array.value
         dphase = np.zeros(len(htime))
 
     if first_orbit_ramp.value:
-        htime = heliocentric_julian_date_array.value
+        htime = bjd_tdb_array.value
         if mid_orbit_ramps.value:
             orbits = np.where(abs(htime - np.roll(htime, 1)) > 5.0 / 60.0 / 24.0)[0]
         else:
@@ -348,10 +348,10 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         fphase = np.where(htime < orbits[1], 1, 0)
 
     else:
-        htime = heliocentric_julian_date_array.value
+        htime = bjd_tdb_array.value
         fphase = np.zeros(len(htime))
 
-    htime = heliocentric_julian_date_array.value
+    htime = bjd_tdb_array.value
     if mid_orbit_ramps.value:
         orbits = np.where(abs(htime - np.roll(htime, 1)) > 5.0 / 60.0 / 24.0)[0]
     else:
@@ -383,7 +383,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         indices_to_remain = np.where(np.product(indices_to_remain, 0))[0]
         indices_to_remain = np.sort(np.unique(np.array(indices_to_remain)))
 
-        for i in [heliocentric_julian_date_array, spectrum_direction_array, sky_background_level_array,
+        for i in [bjd_tdb_array, spectrum_direction_array, sky_background_level_array,
                   star_x_position_array, x_shift_error_array, star_y_position_array, y_shift_error_array,
                   scan_length_array, scan_length_error_array]:
 
@@ -410,11 +410,11 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     else:
 
-        white_fit_hjd = fitted_white_light_curve['lightcurves']['white']['input_time_series']['hjd']
-        htime = heliocentric_julian_date_array.value
-        indices_to_remain = np.where([(ff in white_fit_hjd) for ff in htime])[0]
+        white_fit_bjd = fitted_white_light_curve['lightcurves']['white']['input_time_series']['bjd_tdb']
+        htime = bjd_tdb_array.value
+        indices_to_remain = np.where([(ff in white_fit_bjd) for ff in htime])[0]
 
-        for i in [heliocentric_julian_date_array, spectrum_direction_array, sky_background_level_array,
+        for i in [bjd_tdb_array, spectrum_direction_array, sky_background_level_array,
                   star_x_position_array, x_shift_error_array, star_y_position_array, y_shift_error_array,
                   scan_length_array,
                   scan_length_error_array]:
@@ -478,59 +478,62 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     if 'auto' in [rp_over_rs.value, fp_over_fs.value, period.value, sma_over_rs.value, eccentricity.value,
                   inclination.value, periastron.value, mid_time.value]:
 
-        catalogue = plc.oec_catalogue()
-
         if planet.value == 'auto':
 
-            planets = []
+            plc_planet = plc.locate_planet(ra_target.value, dec_target.value, 1/60.0)
 
-            for i in catalogue.planets:
-                if not np.isnan(i.system.dec):
-                    planets.append([np.sqrt((i.system.dec.deg - dec_target.value) ** 2
-                                            + (i.system.ra.deg - ra_target.value) ** 2), i.name, i])
-            planets.sort()
-
-            planet.set(planets[0][2].name)
+            planet.set(plc_planet.name)
 
         else:
-            planet.set(planet.value.replace('_', ' '))
 
-        oec_parameters = plc.find_oec_parameters(planet.value, catalogue)
+            plc_planet = plc.get_planet(planet.value)
 
-        print('Some parameters are set to auto, resetting to the OEC values for {0} ...'.format(planet.value))
+        print('Some parameters are set to auto, resetting to the ECC values for {0} ...'.format(planet.value))
 
         if star_logg.value == 'auto':
-            star_logg.set(oec_parameters[1])
+            star_logg.set(plc_planet.stellar_logg)
+            print('Setting star_logg = {0}'.format(plc_planet.stellar_logg))
 
         if star_teff.value == 'auto':
-            star_teff.set(oec_parameters[2])
+            star_teff.set(plc_planet.stellar_temperature)
+            print('Setting star_teff = {0}'.format(plc_planet.stellar_temperature))
 
         if star_meta.value == 'auto':
-            star_meta.set(oec_parameters[3])
+            star_meta.set(plc_planet.stellar_metallicity)
+            print('Setting star_meta = {0}'.format(plc_planet.stellar_metallicity))
 
         if rp_over_rs.value == 'auto':
-            rp_over_rs.set(oec_parameters[4])
-
-        if fp_over_fs.value == 'auto':
-            fp_over_fs.set(oec_parameters[5])
+            rp_over_rs.set(plc_planet.rp_over_rs)
+            print('Setting rp_over_rs = {0}'.format(plc_planet.rp_over_rs))
 
         if period.value == 'auto':
-            period.set(oec_parameters[6])
+            period.set(plc_planet.period)
+            print('Setting period = {0}'.format(plc_planet.period))
 
         if sma_over_rs.value == 'auto':
-            sma_over_rs.set(oec_parameters[7])
+            sma_over_rs.set(plc_planet.sma_over_rs)
+            print('Setting sma_over_rs = {0}'.format(plc_planet.sma_over_rs))
 
         if eccentricity.value == 'auto':
-            eccentricity.set(oec_parameters[8])
+            eccentricity.set(plc_planet.eccentricity)
+            print('Setting eccentricity = {0}'.format(plc_planet.eccentricity))
 
         if inclination.value == 'auto':
-            inclination.set(oec_parameters[9])
+            inclination.set(plc_planet.inclination)
+            print('Setting inclination = {0}'.format(plc_planet.inclination))
 
         if periastron.value == 'auto':
-            periastron.set(oec_parameters[10])
+            periastron.set(plc_planet.periastron)
+            print('Setting periastron = {0}'.format(plc_planet.periastron))
 
         if mid_time.value == 'auto':
-            mid_time.set(oec_parameters[11])
+            mid_time.set(plc_planet.mid_time)
+            print('Setting mid_time = {0}'.format(plc_planet.mid_time))
+
+        if fp_over_fs.value == 'auto':
+            fp_over_fs.set(
+                plc.fp_over_fs(rp_over_rs.value, sma_over_rs.value, 0.15, 1.0, star_teff.value, 'hst_wfc3_g141_w'))
+            print('Setting fp_over_fs = {0}'.format(fp_over_fs.value))
 
     for j in range(len(bins_dictionaries)):
 
@@ -538,27 +541,23 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
         if isinstance(ldc1.value, str):
 
-            method.set('claret')
-            if star_teff.value < 4000.0:
-                stellar_model = 'PHOENIX'
-            else:
-                stellar_model = 'ATLAS'
-
             if ldc1.value == 'default_high' and grism.value == 'G141':
-                band = 'WFC3G141H'
+                band = 'hst_wfc3_g141_h'
             elif ldc1.value == 'default_low' and grism.value == 'G141':
-                band = 'WFC3G141L'
+                band = 'hst_wfc3_g141_l'
             elif ldc1.value == 'default_vlow' and grism.value == 'G141':
-                band = 'WFC3G141VL'
+                band = 'hst_wfc3_g141_v'
             elif ldc1.value == 'default_high' and grism.value == 'G102':
-                band = 'WFC3G102H'
+                band = 'hst_wfc3_g102_h'
             elif ldc1.value == 'default_low' and grism.value == 'G102':
-                band = 'WFC3G102L'
+                band = 'hst_wfc3_g102_l'
             else:
-                band = 'WFC3G102VL'
+                band = 'hst_wfc3_g102_v'
 
-            a1, a2, a3, a4 = plc.clablimb('claret', star_logg.value, star_teff.value, 0.0, '{0}{1}'.format(band, j),
-                                          stellar_model=stellar_model)
+            a1, a2, a3, a4 = plc.exotethys(star_logg.value, star_teff.value, 0.0,
+                                           '2mass_j',
+                                           # '{0}{1}'.format(band, j),
+                                           method=method.value)
 
             ldc1.to_dictionary(bins_dictionaries[j], value=a1)
             ldc2.to_dictionary(bins_dictionaries[j], value=a2)
@@ -568,19 +567,16 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     ldc1.from_dictionary(white_dictionary)
 
     if ldc1.value == 'default':
-        method.set('claret')
-        if star_teff.value < 4000.0:
-            stellar_model = 'PHOENIX'
-        else:
-            stellar_model = 'ATLAS'
 
         if grism.value == 'G141':
-            band = 'WFC3G141W'
+            band = 'hst_wfc3_g141_w'
         else:
-            band = 'WFC3G102W'
+            band = 'hst_wfc3_g102_w'
 
-        a1, a2, a3, a4 = plc.clablimb('claret', star_logg.value, star_teff.value, 0.0, band,
-                                      stellar_model=stellar_model)
+        a1, a2, a3, a4 = plc.exotethys(star_logg.value, star_teff.value, 0.0,
+                                       '2mass_j',
+                                       # band,
+                                       method=method.value)
 
         ldc1.to_dictionary(white_dictionary, value=a1)
         ldc2.to_dictionary(white_dictionary, value=a2)
@@ -590,27 +586,22 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     # set observation
 
     eclipse_time = mid_time.value + 0.5 * period.value
-    meanhjd_time = np.mean(heliocentric_julian_date_array.value)
-    transit_test = abs(mid_time.value - meanhjd_time) / period.value
+    meanbjd_time = np.mean(bjd_tdb_array.value)
+    transit_test = abs(mid_time.value - meanbjd_time) / period.value
     transit_test = abs(transit_test - np.round(transit_test))
-    eclipse_test = abs(eclipse_time - meanhjd_time) / period.value
+    eclipse_test = abs(eclipse_time - meanbjd_time) / period.value
     eclipse_test = abs(eclipse_test - np.round(eclipse_test))
 
     if transit_test < eclipse_test:
         observation_type = 'transit'
         print('This is a transit observation.')
-        if fit_mid_time.value == 'auto':
-
-            fit_mid_time.set(True)
     else:
         observation_type = 'eclipse'
         print('This is an eclipse observation.')
-        if fit_mid_time.value == 'auto':
-            fit_mid_time.set(False)
 
     # import series
 
-    data_time = heliocentric_julian_date_array.value
+    data_time = bjd_tdb_array.value
     flux_array.from_dictionary(white_dictionary)
     data_white = flux_array.value
     error_array.from_dictionary(white_dictionary)
@@ -845,11 +836,12 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     limits2.append(np.nan)
 
     # mid-transit time
-    names.append('t_0')
-    print_names.append('T_0')
+    names.append('t_mid_bjd_tdb')
+    print_names.append('T_\mathrm{mid}(\mathrm{BJD_{TDB}})')
     mid_time.set(mid_time.value + period.value * round((data_time[-1] - mid_time.value) / period.value))
     if observation_type == 'eclipse':
-        mid_time.set(mid_time.value - period.value / 2)
+        mid_time.set(plc.eclipse_mid_time(period.value, sma_over_rs.value, eccentricity.value, inclination.value,
+                                          periastron.value, mid_time.value))
     initial.append(mid_time.value)
     if fit_mid_time.value:
         limits1.append(mid_time.value - 0.1)
@@ -859,28 +851,17 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         limits2.append(np.nan)
 
     # set model
-    sub_exposures = int(exposure_time.value / 10.0 + 1)
-    sub_exposure_time = float(exposure_time.value / sub_exposures)
-    sub_exposure_time /= (24.0 * 60 * 60)
 
-    if exposure_time.value > 10:
-        exposure_time.set(exposure_time.value / (24.0 * 60 * 60))
-        data_time_hr = np.array([])
-        for i in range(sub_exposures):
-            data_time_hr = np.append(data_time_hr,
-                                     data_time - exposure_time.value / 2.0 + (i + 0.5) * sub_exposure_time)
-    else:
-        data_time_hr = data_time
-
-    def model(model_norm_f, model_norm_r, model_r_a1, model_r_a2,
+    def model(model_time,
+              model_norm_f, model_norm_r, model_r_a1, model_r_a2,
               model_r_b1, model_mor_b1, model_for_b1, model_r_b2, model_mor_b2, model_for_b2,
               model_ldc1, model_ldc2, model_ldc3, model_ldc4,
               model_rp_over_rs, model_fp_over_fs, model_period, model_sma_over_rs, model_eccentricity,
               model_inclination, model_periastron, model_mid_time, independent=False):
 
         normalisation = np.where(data_scan > 0, 10 ** model_norm_f, 10 ** model_norm_r)
-        detrend1 = (1.0 - model_r_a1 * (data_time - model_mid_time)
-                    + model_r_a2 * ((data_time - model_mid_time) ** 2))
+        detrend1 = (1.0 - model_r_a1 * (model_time - model_mid_time)
+                    + model_r_a2 * ((model_time - model_mid_time) ** 2))
         ramp_ampl = np.where(data_dphase == 0, model_r_b1, model_mor_b1)
         ramp_ampl = np.where(data_fphase == 0, ramp_ampl, model_for_b1)
         ramp_decay = np.where(data_dphase == 0, model_r_b2, model_mor_b2)
@@ -888,16 +869,16 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         detrend2 = 1.0 - ramp_ampl * np.exp(- (10 ** ramp_decay) * data_ophase)
 
         if observation_type == 'transit':
-            signal = plc.transit(method.value, [model_ldc1, model_ldc2, model_ldc3, model_ldc4],
-                                 model_rp_over_rs, model_period,
-                                 model_sma_over_rs, model_eccentricity, model_inclination,
-                                 model_periastron, model_mid_time, data_time_hr)
+            signal = plc.transit_integrated([model_ldc1, model_ldc2, model_ldc3, model_ldc4],
+                                            model_rp_over_rs, model_period,
+                                            model_sma_over_rs, model_eccentricity, model_inclination,
+                                            model_periastron, model_mid_time, model_time, exposure_time.value,
+                                            max_sub_exp_time=10, method=method.value)
         else:
-            signal = plc.eclipse(model_fp_over_fs, model_rp_over_rs, model_period,
-                                 model_sma_over_rs, model_eccentricity, model_inclination,
-                                 model_periastron, model_mid_time + model_period / 2, data_time_hr)
-
-        signal = np.mean(np.reshape(signal, (sub_exposures, len(data_time))), 0)
+            signal = plc.eclipse_integrated(model_fp_over_fs, model_rp_over_rs, model_period,
+                                            model_sma_over_rs, model_eccentricity, model_inclination,
+                                            model_periastron, model_mid_time, model_time, exposure_time.value,
+                                            max_sub_exp_time=10)
 
         if not independent:
             return normalisation * detrend1 * detrend2 * signal
@@ -908,20 +889,27 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
     if fitted_white_light_curve is None:
 
-        mcmc = plc.EmceeFitting([data_white, data_white_error], model, np.array(initial), np.array(limits1),
-                                np.array(limits2), mcmc_walkers.value, mcmc_iterations.value,
-                                mcmc_burned_iterations.value, names, print_names, counter=True,
-                                strech_prior=1.0)
+        mcmc = plc.EmceeFitting(data_time, data_white, data_white_error,
+                                model, np.array(initial), np.array(limits1), np.array(limits2),
+                                mcmc_walkers.value, mcmc_iterations.value, mcmc_burned_iterations.value,
+                                data_x_name='bjd_tdb', data_y_name='flux',
+                                data_x_print_name='t (BJD_{TDB})',data_y_print_name='Rel. Flux',
+                                parameters_names=names, parameters_print_names=print_names,
+                                counter='MCMC White 1/2', strech_prior=1.0)
 
         mcmc.run_mcmc()
 
         initial = mcmc.results['parameters_final']
 
-        data_white_error *= np.std(data_white - model(*mcmc.results['parameters_final'])) / np.median(data_white_error)
+        data_white_error *= np.std(data_white - model(data_time, *mcmc.results['parameters_final'])) / np.median(data_white_error)
 
-        mcmc = plc.EmceeFitting([data_white, data_white_error], model, np.array(initial), np.array(limits1),
-                                np.array(limits2), mcmc_walkers.value, mcmc_iterations.value,
-                                mcmc_burned_iterations.value, names, print_names, counter=True, strech_prior=1.0)
+        mcmc = plc.EmceeFitting(data_time, data_white, data_white_error,
+                                model, np.array(initial), np.array(limits1), np.array(limits2),
+                                mcmc_walkers.value, mcmc_iterations.value, mcmc_burned_iterations.value,
+                                data_x_name='bjd_tdb', data_y_name='flux',
+                                data_x_print_name='t (BJD_{TDB})', data_y_print_name='Rel. Flux',
+                                parameters_names=names, parameters_print_names=print_names,
+                                counter='MCMC White 2/2', strech_prior=1.0)
 
         mcmc.run_mcmc()
 
@@ -938,11 +926,11 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
         white_fit['limb_darkening'] = {'method': method.value}
 
-        white_fit['exposure'] = {'exp_time': exposure_time.value * (24.0 * 60 * 60),
-                                 'model_resolution': sub_exposure_time * (24.0 * 60 * 60)
+        white_fit['exposure'] = {'exp_time': exposure_time.value,
+                                 'model_resolution': 10
                                  }
 
-        white_fit['input_time_series'] = {'hjd': data_time,
+        white_fit['input_time_series'] = {'bjd_tdb': data_time,
                                           'scan': data_scan,
                                           'sky': data_sky,
                                           'x_shift': data_x_shift,
@@ -956,8 +944,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
         del white_fit['input_series']
 
-        model_systematics, model_curve = model(*mcmc.results['parameters_final'], independent=True)
-        white_fit['output_time_series'] = {'phase': ((data_time - white_fit['parameters']['t_0']['value']) /
+        model_systematics, model_curve = model(data_time, *mcmc.results['parameters_final'], independent=True)
+        white_fit['output_time_series'] = {'phase': ((data_time - white_fit['parameters']['t_mid_bjd_tdb']['value']) /
                                                      white_fit['parameters']['P']['value']),
                                            'full_model': model_systematics * model_curve,
                                            'full_residuals': data_white - model_systematics * model_curve,
@@ -998,8 +986,6 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     # fit relative spectrum
 
     if fitting_spectrum:
-
-        counter = PipelineCounter('Spectrum', len(bins_dictionaries))
 
         for j in range(len(bins_dictionaries)):
 
@@ -1161,31 +1147,33 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             limits2.append(np.nan)
 
             # mid-transit time
-            names.append('t_0')
-            print_names.append('T_0')
-            initial.append(fitting_results['lightcurves']['white']['parameters']['t_0']['value'])
+            names.append('t_mid_bjd_tdb')
+            print_names.append('T_\mathrm{mid}(\mathrm{BJD_{TDB}})')
+            initial.append(fitting_results['lightcurves']['white']['parameters']['t_mid_bjd_tdb']['value'])
             limits1.append(np.nan)
             limits2.append(np.nan)
 
-            def model(model_norm_f, model_norm_r, model_ramp_a1,
+            def model(model_time,
+                      model_norm_f, model_norm_r, model_ramp_a1,
                       model_ldc1, model_ldc2, model_ldc3, model_ldc4,
                       model_rp_over_rs, model_fp_over_fs, model_period, model_sma_over_rs, model_eccentricity,
                       model_inclination, model_periastron, model_mid_time, independent=False):
 
                 normalisation = np.where(data_scan > 0, 10 ** model_norm_f, 10 ** model_norm_r)
-                detrend1 = 1.0 - model_ramp_a1 * (data_time - model_mid_time)
+                detrend1 = 1.0 - model_ramp_a1 * (model_time - model_mid_time)
                 detrend2 = model_white
 
                 if observation_type == 'transit':
-                    signal = plc.transit(method.value, [model_ldc1, model_ldc2, model_ldc3, model_ldc4],
-                                         model_rp_over_rs, model_period, model_sma_over_rs, model_eccentricity,
-                                         model_inclination, model_periastron, model_mid_time, data_time_hr)
+                    signal = plc.transit_integrated([model_ldc1, model_ldc2, model_ldc3, model_ldc4],
+                                                    model_rp_over_rs, model_period,
+                                                    model_sma_over_rs, model_eccentricity, model_inclination,
+                                                    model_periastron, model_mid_time, model_time, exposure_time.value,
+                                                    max_sub_exp_time=10, method=method.value)
                 else:
-                    signal = plc.eclipse(model_fp_over_fs, model_rp_over_rs, model_period,
-                                         model_sma_over_rs, model_eccentricity, model_inclination,
-                                         model_periastron, model_mid_time + period.value / 2, data_time_hr)
-
-                signal = np.mean(np.reshape(signal, (sub_exposures, len(data_time))), 0)
+                    signal = plc.eclipse_integrated(model_fp_over_fs, model_rp_over_rs, model_period,
+                                                    model_sma_over_rs, model_eccentricity, model_inclination,
+                                                    model_periastron, model_mid_time, model_time, exposure_time.value,
+                                                    max_sub_exp_time=10)
 
                 if not independent:
                     return normalisation * detrend1 * detrend2 * signal
@@ -1200,7 +1188,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                     for ii in range(len(curve_fit_fitted_parameters_indices)):
                         curve_fit_parameters[curve_fit_fitted_parameters_indices[ii]] = curve_fit_fitted_parameters[ii]
 
-                    return model(*curve_fit_parameters)
+                    return model(data_time, *curve_fit_parameters)
 
             popt, pcov = curve_fit(curve_fit_model, [1], data_bin,
                                    p0=np.array(initial)[curve_fit_fitted_parameters_indices])
@@ -1208,10 +1196,14 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
             data_bin_error *= (np.std(data_bin - curve_fit_model(1, *popt)) /
                                np.median(data_bin_error))
 
-            mcmc = plc.EmceeFitting([data_bin, data_bin_error], model, np.array(initial), np.array(limits1),
-                                    np.array(limits2), spectral_mcmc_walkers.value, spectral_mcmc_iterations.value,
-                                    spectral_mcmc_burned_iterations.value, names, print_names, counter=False,
-                                    strech_prior=1.0)
+            mcmc = plc.EmceeFitting(data_time, data_bin, data_bin_error,
+                                    model, np.array(initial), np.array(limits1), np.array(limits2),
+                                    spectral_mcmc_walkers.value, spectral_mcmc_iterations.value,
+                                    spectral_mcmc_burned_iterations.value,
+                                    data_x_name='bjd_tdb', data_y_name='flux',
+                                    data_x_print_name='t (BJD_{TDB})', data_y_print_name='Rel. Flux',
+                                    parameters_names=names, parameters_print_names=print_names,
+                                    counter='MCMC Spectral bin {0}/{1}'.format(j+1, len(bins_dictionaries)), strech_prior=1.0)
 
             mcmc.run_mcmc()
 
@@ -1228,11 +1220,11 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
             spectral_fit['limb_darkening'] = {'method': method.value}
 
-            spectral_fit['exposure'] = {'exp_time': exposure_time.value * (24.0 * 60 * 60),
-                                        'model_resolution': sub_exposure_time * (24.0 * 60 * 60)
+            spectral_fit['exposure'] = {'exp_time': exposure_time.value,
+                                        'model_resolution': 10
                                         }
 
-            spectral_fit['input_time_series'] = {'hjd': data_time,
+            spectral_fit['input_time_series'] = {'bjd_tdb': data_time,
                                                  'scan': data_scan,
                                                  # 'white_raw_lc': data_white,
                                                  # 'white_raw_lc_error': data_white_error,
@@ -1246,8 +1238,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
 
             del spectral_fit['input_series']
 
-            model_systematics, model_curve = model(*mcmc.results['parameters_final'], independent=True)
-            spectral_fit['output_time_series'] = {'phase': ((data_time - spectral_fit['parameters']['t_0']['value']) /
+            model_systematics, model_curve = model(data_time, *mcmc.results['parameters_final'], independent=True)
+            spectral_fit['output_time_series'] = {'phase': ((data_time - spectral_fit['parameters']['t_mid_bjd_tdb']['value']) /
                                                             spectral_fit['parameters']['P']['value']),
                                                   'full_model': model_systematics * model_curve,
                                                   'full_residuals': data_bin - model_systematics * model_curve,
@@ -1284,8 +1276,6 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                                               }
 
             fitting_results['lightcurves']['bin_{0}'.format(str(j + 1).zfill(2))] = spectral_fit
-
-            counter.update()
 
         if observation_type == 'transit':
             lambda_mean = []
@@ -1357,7 +1347,6 @@ def plot_fitting(dictionary, directory):
         distr = np.insert(distr, len(distr), np.zeros(int(x_size) - len(distr)))
 
         plt.step(distrx, distr, c='k')
-        # plt.xlim(xmin, xmax)
 
     def td_distribution(datax, datay):
 
@@ -1400,26 +1389,15 @@ def plot_fitting(dictionary, directory):
         errors = []
         traces = []
 
-        trace_to_keep = 0
-
         for i in light_curve_dic[bin_to_plot]['statistics']['corr_variables'].split(','):
             names.append(light_curve_dic[bin_to_plot]['parameters'][i]['print_name'])
-            results.append(light_curve_dic[bin_to_plot]['parameters'][i]['value'])
-            errors1.append(light_curve_dic[bin_to_plot]['parameters'][i]['m_error'])
-            errors2.append(light_curve_dic[bin_to_plot]['parameters'][i]['p_error'])
+            results.append(light_curve_dic[bin_to_plot]['parameters'][i]['print_value'])
+            errors1.append(light_curve_dic[bin_to_plot]['parameters'][i]['print_m_error'])
+            errors2.append(light_curve_dic[bin_to_plot]['parameters'][i]['print_p_error'])
             errors.append(0.5 * (light_curve_dic[bin_to_plot]['parameters'][i]['m_error'] +
                                  light_curve_dic[bin_to_plot]['parameters'][i]['p_error']))
-            trace = light_curve_dic[bin_to_plot]['parameters'][i]['trace']
 
-            median = np.median(trace)
-            mad = np.sqrt(np.median((trace - median) ** 2))
-
-            trace_to_keep += (trace > (median - 10 * mad)) * (trace < (median + 10 * mad))
-
-        trace_to_keep = np.where(trace_to_keep == len(light_curve_dic[bin_to_plot]['statistics']['corr_variables'].split(',')))
-
-        for i in light_curve_dic[bin_to_plot]['statistics']['corr_variables'].split(','):
-            traces.append(light_curve_dic[bin_to_plot]['parameters'][i]['trace'][trace_to_keep])
+            traces.append(light_curve_dic[bin_to_plot]['parameters'][i]['trace'])
 
         all_var = len(traces)
         fig = plt.figure(figsize=(2.5 * all_var, 2.5 * all_var))
@@ -1435,42 +1413,19 @@ def plot_fitting(dictionary, directory):
 
             od_distribution(traces[var])
 
-            plt.axvline(results[var], c='k')
-            plt.axvline(results[var] - errors1[var], c='k', ls='--', lw=0.5)
-            plt.axvline(results[var] + errors2[var], c='k', ls='--', lw=0.5)
+            plt.axvline(float(results[var]), c='k')
+            plt.axvline(float(results[var]) - float(errors1[var]), c='k', ls='--', lw=0.5)
+            plt.axvline(float(results[var]) + float(errors2[var]), c='k', ls='--', lw=0.5)
 
             plt.tick_params(left=False, right=False, top=False, bottom=False, labelbottom=False, labelleft=False)
 
-            try:
-                digit1 = abs(int(np.log10(errors1[var]))) + 1
-            except OverflowError:
-                digit1 = 3
-            try:
-                digit2 = abs(int(np.log10(errors2[var]))) + 1
-            except OverflowError:
-                digit2 = 3
-            try:
-                done1 = 1 // int(errors1[var] * (10 ** digit1))
-            except ZeroDivisionError:
-                done1 = 0
-            try:
-                done2 = 1 // int(errors2[var] * (10 ** digit2))
-            except ZeroDivisionError:
-                done2 = 0
-
-            if errors1[var] > 1. and errors2[var] > 1.:
-                digit1, digit2, done1, done2 = 0, 0, 0, 0
-
-            width = max(digit1 + done1, digit2 + done2)
-
             plt.xlabel('{0}{1}{2}{3}{4}{5}{6}{7}{8}'.format(
                 r'${0}$'.format(names[var]), '\n',
-                r'${0:.{width}f}$'.format(round(results[var], width), width=width), '\n',
-                r'$-$', r'${0:.{width}f}$'.format(round(errors1[var], width), width=width), '\n',
-                r'$+$', r'${0:.{width}f}$'.format(round(errors2[var], width), width=width)),
-                fontsize=15)
+                r'${0}$'.format(results[var]), '\n',
+                r'$-$', r'${0}$'.format(errors1[var]), '\n',
+                r'$+$', r'${0}$'.format(errors2[var])), fontsize=15)
 
-            plt.xlim(results[var] - 6 * errors[var], results[var] + 6 * errors[var])
+            plt.xlim(float(results[var]) - 6 * errors[var], float(results[var]) + 6 * errors[var])
             plt.ylim(0, plt.ylim()[1])
 
             for j in range(var + 1, all_var):
@@ -1483,15 +1438,15 @@ def plot_fitting(dictionary, directory):
                 plt.tick_params(bottom=False, left=False, right=False, top=False, labelbottom=False,
                                 labelleft=False, labelright=False, labeltop=False)
 
-                plt.xlim(results[j] - 6 * errors[j], results[j] + 6 * errors[j])
-                plt.ylim(results[var] - 6 * errors[var], results[var] + 6 * errors[var])
+                plt.xlim(float(results[j]) - 6 * errors[j], float(results[j]) + 6 * errors[j])
+                plt.ylim(float(results[var]) - 6 * errors[var], float(results[var]) + 6 * errors[var])
                 text_x = plt.xlim()[1] - 0.05 * (plt.xlim()[1] - plt.xlim()[0])
                 text_y = plt.ylim()[1] - 0.05 * (plt.ylim()[1] - plt.ylim()[0])
                 plt.text(text_x, text_y, r'{0}{1}{2}'.format('$', str(correlation(traces[j], traces[var])), '$'),
                          color=cmap(abs(correlation(traces[j], traces[var])) / 2.), fontsize=15, ha='right', va='top')
 
         plt.subplots_adjust(hspace=0, wspace=0)
-        plc.save_figure(directory, name=export_file)
+        tools.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_fitting_i(light_curve_dic, bin_to_plot, export_file):
@@ -1526,7 +1481,7 @@ def plot_fitting(dictionary, directory):
 
         plt.xlim(-x_max, x_max)
 
-        plc.adjust_ticks()
+        tools.adjust_ticks()
         plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 2)
@@ -1539,7 +1494,7 @@ def plot_fitting(dictionary, directory):
 
         plt.xlim(-x_max, x_max)
 
-        plc.adjust_ticks()
+        tools.adjust_ticks()
         plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 3)
@@ -1552,7 +1507,7 @@ def plot_fitting(dictionary, directory):
         plt.xlabel(r'$\mathrm{phase}$', fontsize=15)
 
         plt.xlim(-x_max, x_max)
-        plc.adjust_ticks()
+        tools.adjust_ticks()
 
         plt.subplot(6, 1, 6)
 
@@ -1562,10 +1517,10 @@ def plot_fitting(dictionary, directory):
         plt.ylabel(r'$\mathrm{res.} \ \mathrm{ACF}$', fontsize=15)
 
         plt.ylim(-1.0, 1.0)
-        plc.adjust_ticks()
+        tools.adjust_ticks()
 
         plt.subplots_adjust(hspace=0.0)
-        plc.save_figure(directory, name=export_file)
+        tools.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_fitting_all(light_curve_dic, export_file):
@@ -1654,7 +1609,7 @@ def plot_fitting(dictionary, directory):
 
         ax2.set_xlim(-x_max, x_max)
         ax2.set_ylim(y_min, y_max)
-        plc.adjust_ticks_ax(ax2)
+        tools.adjust_ticks_ax(ax2)
 
         ax3.set_title(r'$\mathrm{residuals}$', fontsize=15)
         ax2.set_xlabel(r'$\mathrm{phase}$', fontsize=15)
@@ -1662,7 +1617,7 @@ def plot_fitting(dictionary, directory):
         ax3.set_xlim(-x_max, x_max)
         ax3.set_ylim(y_min, y_max)
         ax3.tick_params(labelleft=False)
-        plc.adjust_ticks_ax(ax3)
+        tools.adjust_ticks_ax(ax3)
 
         ax4.set_title(r'$\mathrm{res.} \ \mathrm{ACF}$', fontsize=15)
         ax4.set_xlabel(r'$\#$', fontsize=15)
@@ -1670,11 +1625,11 @@ def plot_fitting(dictionary, directory):
         ax4.set_ylim(y_min, y_max)
         ax4.set_xlim(-5, ax4xlim)
         ax4.tick_params(labelleft=False)
-        plc.adjust_ticks_ax(ax4)
+        tools.adjust_ticks_ax(ax4)
         ax4.set_xlim(-5, ax4xlim)
 
         plt.subplots_adjust(wspace=0)
-        plc.save_figure(directory, name=export_file)
+        tools.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_spectral_results(lightcurve, export_file):
@@ -1766,7 +1721,7 @@ def plot_fitting(dictionary, directory):
                      fmt='o', color='k', ms=n_plots, mec='None')
         ax1.set_ylabel(r'$\mathrm{bin} \ \mathrm{width} \, (\mu \mathrm{m})$', fontsize=15)
         ax1.tick_params(labelbottom=False)
-        plc.adjust_ticks_ax(ax1)
+        tools.adjust_ticks_ax(ax1)
 
         # plot 2
 
@@ -1777,7 +1732,7 @@ def plot_fitting(dictionary, directory):
         ax2.legend()
         ax2.set_ylabel('{0}{1}{2}'.format(r'$\mathrm{limb}$', '\n', r'$\mathrm{darkening}$', fontsize=15))
         ax2.tick_params(labelbottom=False)
-        plc.adjust_ticks_ax(ax2)
+        tools.adjust_ticks_ax(ax2)
 
         # plot 3
 
@@ -1791,7 +1746,7 @@ def plot_fitting(dictionary, directory):
         dy = 0.6 * (np.max(rp) - np.min(rp)) + np.max(rp_er)
         ax3.set_ylim((np.max(rp) + np.min(rp)) / 2 - dy, (np.max(rp) + np.min(rp)) / 2 + dy)
         ax3.tick_params(labelbottom=False)
-        plc.adjust_ticks_ax(ax3)
+        tools.adjust_ticks_ax(ax3)
 
         # plot 4
 
@@ -1802,26 +1757,26 @@ def plot_fitting(dictionary, directory):
             ax4.errorbar(wavelength_mean, n_l_for, n_l_for_er, color='k', fmt='-o', mec='None')
             ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
             ax4.tick_params(labelbottom=False)
-            plc.adjust_ticks_ax(ax4)
+            tools.adjust_ticks_ax(ax4)
 
         elif len(n_l_rev) > 0 and n_plots == 5:
 
             ax4.errorbar(wavelength_mean, n_l_rev, n_l_rev_er, color='k', fmt='-o', mec='None')
             ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
             ax4.tick_params(labelbottom=False)
-            plc.adjust_ticks_ax(ax4)
+            tools.adjust_ticks_ax(ax4)
 
         elif n_plots == 6:
 
             ax4.errorbar(wavelength_mean, n_l_for, n_l_for_er, color='k', fmt='-o', mec='None')
             ax4.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
             ax4.tick_params(labelbottom=False)
-            plc.adjust_ticks_ax(ax4)
+            tools.adjust_ticks_ax(ax4)
 
             ax5.errorbar(wavelength_mean, n_l_rev, n_l_rev_er, color='k', fmt='-o', mec='None')
             ax5.set_ylabel(r'$n_\lambda ^\mathrm{for}$', fontsize=15)
             ax5.tick_params(labelbottom=False)
-            plc.adjust_ticks_ax(ax5)
+            tools.adjust_ticks_ax(ax5)
 
             next_ax = plt.subplot(n_plots, 1, 6)
 
@@ -1832,10 +1787,10 @@ def plot_fitting(dictionary, directory):
         next_ax.set_ylabel(r'$\mathrm{ramp} \ \mathrm{slope}$', fontsize=15)
         next_ax.set_xlabel(r'$\lambda \, (\mu \mathrm{m})$', fontsize=15)
 
-        plc.adjust_ticks_ax(next_ax)
+        tools.adjust_ticks_ax(next_ax)
 
         plt.subplots_adjust(hspace=0)
-        plc.save_figure(directory, name=export_file)
+        tools.save_figure(directory, name=export_file)
         plt.close('all')
 
     def plot_diagnostics(lightcurve, export_file):
@@ -1843,7 +1798,7 @@ def plot_fitting(dictionary, directory):
         fig = plt.figure(10, figsize=(7, 10))
         fig.set_tight_layout(False)
 
-        hjd_time = lightcurve['white']['input_time_series']['hjd']
+        bjd_time = lightcurve['white']['input_time_series']['bjd_tdb']
         flux = lightcurve['white']['input_time_series']['raw_lc']
         yshift = lightcurve['white']['input_time_series']['y_shift']
         yshift_err = lightcurve['white']['input_time_series']['y_shift_error']
@@ -1864,7 +1819,7 @@ def plot_fitting(dictionary, directory):
         else:
             rev_flag = False
 
-        hjd_time = np.array(hjd_time) - hjd_time[0]
+        bjd_time = np.array(bjd_time) - bjd_time[0]
         xshift = np.array(xshift)
         if for_flag:
             xshift[forward] = xshift[forward] - xshift[forward][0]
@@ -1881,52 +1836,52 @@ def plot_fitting(dictionary, directory):
 
         plt.subplot(4, 1, 1)
         plt.cla()
-        plt.errorbar(hjd_time[forward], yshift[forward], yshift_err[forward],
+        plt.errorbar(bjd_time[forward], yshift[forward], yshift_err[forward],
                      fmt='o', c=forward_colour, mec=forward_colour, ms=3)
-        plt.errorbar(hjd_time[reverse], yshift[reverse], yshift_err[reverse],
+        plt.errorbar(bjd_time[reverse], yshift[reverse], yshift_err[reverse],
                      fmt='o', c=reverse_colour, mec=reverse_colour, ms=3)
 
         plt.ylabel(r'$\Delta y_i \, \mathrm{(pix)}$', fontsize=15)
 
-        plc.adjust_ticks()
+        tools.adjust_ticks()
         plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 2)
         plt.cla()
-        plt.errorbar(hjd_time[forward], xshift[forward], xshift_err[forward],
+        plt.errorbar(bjd_time[forward], xshift[forward], xshift_err[forward],
                      fmt='o', c=forward_colour, mec=forward_colour, ms=3)
-        plt.errorbar(hjd_time[reverse], xshift[reverse], xshift_err[reverse],
+        plt.errorbar(bjd_time[reverse], xshift[reverse], xshift_err[reverse],
                      fmt='o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        plc.adjust_ticks()
+        tools.adjust_ticks()
         plt.ylabel(r'$\Delta x_i \, \mathrm{(pix)}$', fontsize=15)
         plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 3)
         plt.cla()
-        plt.plot(hjd_time[forward], ssky[forward],
+        plt.plot(bjd_time[forward], ssky[forward],
                  'o', c=forward_colour, mec=forward_colour, ms=3)
-        plt.plot(hjd_time[reverse], ssky[reverse],
+        plt.plot(bjd_time[reverse], ssky[reverse],
                  'o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        plc.adjust_ticks()
+        tools.adjust_ticks()
         plt.ylabel(r'$\mathrm{sky} \, \mathrm{ratio}$', fontsize=15)
         plt.tick_params(labelbottom=False)
 
         plt.subplot(4, 1, 4)
         plt.cla()
-        plt.plot((np.array(hjd_time) - hjd_time[0])[forward], np.array(flux)[forward] / (10 ** 8),
+        plt.plot((np.array(bjd_time) - bjd_time[0])[forward], np.array(flux)[forward] / (10 ** 8),
                  'o', c=forward_colour, mec=forward_colour, ms=3)
-        plt.plot((np.array(hjd_time) - hjd_time[0])[reverse], np.array(flux)[reverse] / (10 ** 8),
+        plt.plot((np.array(bjd_time) - bjd_time[0])[reverse], np.array(flux)[reverse] / (10 ** 8),
                  'o', c=reverse_colour, mec=reverse_colour, ms=3)
 
-        plc.adjust_ticks()
+        tools.adjust_ticks()
 
         plt.ylabel(r'$\mathrm{e}^{-} \, (\times 10^8)$', fontsize=15)
         plt.xlabel(r'$\Delta t \, \mathrm{(days)}$', fontsize=15)
 
         plt.subplots_adjust(hspace=0)
-        plc.save_figure(directory, name=export_file)
+        tools.save_figure(directory, name=export_file)
         plt.close('all')
 
     plot_diagnostics(dictionary['lightcurves'], 'diagnostics')

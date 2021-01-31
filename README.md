@@ -29,7 +29,7 @@ be updated to fit also multiple visits of the same target simultaneously.
 
 This work is licensed under the Creative Commons Attribution 4.0 International License.
 
-Copyright (c) 2018 Angelos Tsiaras
+Copyright (c) 2018-2021 Angelos Tsiaras
 
 Please pay attention to Section 3 of the license and do:
 - retain identification of the creators by including the above listed references in future work and publications,
@@ -128,75 +128,75 @@ extraction aperture)
 `method` **`claret`**  
 (claret/linear/quad/sqrt) Limb-darkening method to be used. Choose between: claret, linear, quad, sqrt.
 
-`white_lower_wavelength` **`10880`**  
-`white_upper_wavelength` **`16800`**  
-(number/default) Right and left edges of the extracted white light curve, in Angstroms.
+`white_lower_wavelength` **`default`**  
+`white_upper_wavelength` **`default`**  
+(number/default) Right and left edges of the extracted white light curve, in Angstroms. 
 
-`white_ldc1` **`0.850033`**  
+`white_ldc1` **`default`**  
 (number/default) First limb-darkening coefficients for the white light-curve.
 
-`white_ldc2` **`-0.728096`**  
+`white_ldc2` **`default`**  
 (number/default) Second limb-darkening coefficients for the white light-curve. Will not be used if the linear method is 
 chosen.
 
-`white_ldc3` **`0.908153`**  
+`white_ldc3` **`default`**  
 (number/default) Third limb-darkening coefficients for the white light-curve. Will not be used if the linear, the quad 
 or the sqrt method is chosen.
 
-`white_ldc4` **`-0.397691`**  
+`white_ldc4` **`default`**  
 (number/default) Forth limb-darkening coefficients for the white light-curve. Will not be used if the linear, the quad 
 or the sqrt method is chosen.
 
-**Comment**: You can set the above six parameters to default, if you want to use the pre-calculated limb-darkening 
-coefficients. In this case, the claret limb-darkening method will be used. These coefficients have been calculated for 
-a wavelength range between 10880.0 and 16800.0 Angstroms.
+**Comment**: When the above parameters are set to default, the white light-curve limits will be 10880.0 - 16800.0 
+Angstroms for G141 and 8000 - 11500 Angstroms for G102.
 
-`bins_file` **`iraclis_test_dataset_hatp26b_bins.txt`**  
+`bins_file` **`default_high`**  
 (file path/default_high/default_low/default_vlow) Path to the bins file.
 
-**Comment**: You can set the above parameter to default_high, default_low or default_vlow. In this case, the claret 
-limb-darkening method will be used. Be careful to avoid conflicts, as the limb-darkening method used between spectral 
-and white light curves should be the same.
+**Comment**: A bins file should contain 4 columns: 1 - bins lower edge in Angstrom, 2 - bins upper edge in Angstrom, 
+3 - first limb darkening coefficient, 4 - second limb darkening coefficient, 5 - third limb darkening coefficient, 
+6 - forth limb darkening coefficient. An example of a bins file can be found in iraclis_test_dataset_hatp26b_bins.txt
 
-`planet` **`HAT-P_26 b`**  
-(name/auto) Planet name, useful if the system has multiple planets.
+`planet` **`auto`**  
+(name - no spaces/auto) Planet name.
 
-`star_teff` **`-0.04`**  
+`star_teff` **`auto`**  
 (number/auto) Stellar temperature, used if the limb-darkening coefficients are set to auto.
 
-`star_logg` **`5079`**  
+`star_logg` **`auto`**  
 (number/auto) Stellar log(g), used if the limb-darkening coefficients are set to auto.
 
-`star_meta` **`4.56`**  
+`star_meta` **`auto`**  
 (number/auto) Stellar metallicity, used if the limb-darkening coefficients are set to auto.
 
-`rp_over_rs` **`0.0715`**  
-(number/auto) Initial value for the planet-to-star radius ratio. This parameters is always fitted both for the white 
+`rp_over_rs` **`auto`**  
+(number/auto) Planet-to-star radius ratio. This parameters is always fitted both for the white 
 and the spectral light-curves in cases of transits.
 
-`fp_over_fs` **`0.0001`**  
-(number/auto) Initial value for the planet-to-star flux ratio. This parameters is always fitted both for the white and 
+`fp_over_fs` **`auto`**  
+(number/auto) Planet-to-star flux ratio. This parameters is always fitted both for the white and 
 the spectral light-curves in cases of eclipses.
 
-`period` **`4.234515`**  
+`period` **`auto`**  
 (number/auto) Period of the planetary orbit in days. Always fixed.
 
-`sma_over_rs` **`13.44`**  
-(number/auto) Initial value for the semi-major axis of the planetary orbit.
+`sma_over_rs` **`auto`**  
+(number/auto) Semi-major axis of the planetary orbit.
 
-`eccentricity` **`0.0`**  
+`eccentricity` **`auto`**  
 (number/auto) Eccentricity of the planetary orbit. Always fixed.
 
-`inclination` **`88.6`**  
-(number/auto) Initial value for the inclination of the planetary orbit, in degrees.
+`inclination` **`auto`**  
+(number/auto) Inclination of the planetary orbit, in degrees.
 
-`periastron` **`0.0`**  
+`periastron` **`auto`**  
 (number/auto) Periastron of the planetary orbit in degrees. Always fixed.
 
-`mid_time` **`2455304.65118`**  
-(number/auto) Initial value for the mid-transit-time of the planetary orbit, in HJD.
+`mid_time` **`auto`**  
+(number/auto) Mid-transit time of the planetary orbit, in BJD_TDB.
+This should be the mid-transit time, even if the observation is an eclipse one.
 
-**Comment**: You can set any of the above 12 parameters to auto, to use the data from the Open Exoplanet Catalogue.
+**Comment**: You can set any of the above 12 parameters to auto, to use the data from a built-in catalogue.
 
 `apply_up_down_stream_correction` **`False`**  
 (True/False) Whether to correct for the up-stream/down-stream effect or not. Useful only in cases of fast scans that 
@@ -211,22 +211,22 @@ cross the line between the upper two and lower two quadrants of the detector.
 `exclude_initial_orbit_points` **`0`**  
 (number) Number of HST exposures to be removed from the begging of each HST-orbit.
 
-`mcmc_iterations` **`500000`**  
+`mcmc_iterations` **`300000`**  
 (number) Number of emcee iterations for the white light-curve fitting
 
-`mcmc_walkers` **`200`**  
+`mcmc_walkers` **`50`**  
 (number) Number of emcee wakers for the white light-curve fitting
 
 `mcmc_burned_iterations` **`200000`**  
 (number) Number of emcee burned iterations for the white light-curve fitting
 
-`spectral_mcmc_iterations` **`50000`**  
+`spectral_mcmc_iterations` **`60000`**  
 (number) Number of emcee iterations for the spectral light-curve fitting
 
-`spectral_mcmc_walkers` **`100`**  
+`spectral_mcmc_walkers` **`50`**  
 (number) Number of emcee walkers for the spectral light-curve fitting
 
-`spectral_mcmc_burned_iterations` **`20000`**  
+`spectral_mcmc_burned_iterations` **`10000`**  
 (number) Number of emcee burned iterations for the spectral light-curve fitting
 
 `first_orbit_ramp` **`True`**  
@@ -264,7 +264,7 @@ light-curve.
 light-curve.
 
 `fit_mid_time` **`True`**  
-(True/False) Whether to fit for the mid-transit-time of the planetary orbit or not. This is fitted only on the white 
+(True/False) Whether to fit for the mid-transit or mid-eclipse time of the planetary orbit or not. This is fitted only on the white 
 light-curve.
 
 #### Setting up a bins file

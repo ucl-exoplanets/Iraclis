@@ -42,7 +42,7 @@ def get_position_diagnostics(fits):
     first_read_index = plc.fits_sci(fits)[-1]
 
     data = np.sum(fits[1].data, 0)
-    model = plc.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
+    model = tools.box(np.arange(len(data)), len(data) / 2, np.max(data), 45., 40.)
     dx = np.argmax(np.convolve(data, model)) - np.argmax(np.convolve(model, model))
     x_lim1, x_lim2 = int(len(data) / 2 + dx - 55), int(len(data) / 2 + dx + 55)
 
@@ -195,11 +195,11 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
                   'IR-UVIS-CENTER': 0.135357, 'IR-UVIS': 0.135666, 'IR-UVIS-FIX': 0.135666, 'GRISM1024': 0.135603,
                   'GRISM512': 0.135504, 'GRISM256': 0.135508, 'GRISM128': 0.135474, 'GRISM64': 0.135474}
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        x0 = plc.fit_two_d_gaussian(direct_image[1].data, positive=True, symmetric=True,
-                                    point_xy=(reference_pixel_x.value, reference_pixel_y.value),
-                                    window=50, sigma=1)[0][2]
+    x0 = plc.find_single_star(direct_image[1].data,
+                              predicted_x=reference_pixel_x.value + 0.5,
+                              predicted_y=reference_pixel_y.value + 0.5,
+                              star_std=5,
+                              burn_limit=1000000)[0]
 
     grism.from_fits(direct_image)
 
@@ -250,7 +250,7 @@ def get_absolute_y_star(fits, target_y_offset, use_standard_flat):
     rows = np.arange(max(5, first_spectrum_bottom - 20), min(first_spectrum_top + 20, len(fits[1].data) - 5))
 
     if int(first_spectrum_scan):
-        avg = np.array([plc.fit_box(rows, ff)[0] for ff in data])
+        avg = np.array([tools.fit_box(rows, ff)[0] for ff in data])
     else:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -274,7 +274,7 @@ def get_absolute_y_star(fits, target_y_offset, use_standard_flat):
         data = get_standard_flat(fits, plc.fits_sci(fits)[-1], use_standard_flat)
         data = np.sum(data[5:-5, max(5, spectrum_left - 20):min(spectrum_right + 20, len(fits[1].data[0]) - 5)], 1)
         rows = np.arange(5, len(fits[1].data) - 5)
-        center, center_err, fwhm, fwhm_err, popt = plc.fit_box(rows, data)
+        center, center_err, fwhm, fwhm_err, popt = tools.fit_box(rows, data)
         correction = - first_spectrum_direction * fwhm / 2
     else:
         correction = 0
@@ -598,7 +598,7 @@ def calibration(input_data, comparison_index_forward=None, comparison_index_reve
                 rows = np.arange(5, len(fits[1].data) - 5)
 
             if spectrum_scan.value:
-                best_fit = plc.fit_box(rows, data)[2:4]
+                best_fit = tools.fit_box(rows, data)[2:4]
             else:
                 best_fit = [0, 0]
 
@@ -837,7 +837,7 @@ def calibration(input_data, comparison_index_forward=None, comparison_index_reve
                 rows = np.arange(5, len(fits[1].data) - 5)
 
             if spectrum_scan.value:
-                best_fit = plc.fit_box(rows, data)[2:4]
+                best_fit = tools.fit_box(rows, data)[2:4]
             else:
                 best_fit = [0, 0]
 
