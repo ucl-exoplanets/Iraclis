@@ -11,38 +11,11 @@ author = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), package, 
 author_email = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), package, '__author_email__.txt')).read()
 description = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), package, '__description__.txt')).read()
 url = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), package, '__url__.txt')).read()
+install_requires = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'requirements.txt')).read().split('\n')
 
-install_requires = ['docopt', 'pylightcurve>=4.0.0', 'numpy>=1.19.2', 'matplotlib>=3.3.2', 'scipy>=1.5.2',
-                    'emcee>=3.0.2', 'sklearn', 'astropy>=4.2']
 entry_point = '__main__:console'
 
 os.chdir(os.path.abspath(os.path.dirname(__file__)))
-
-subdirs_to_include = []
-for x in os.walk(package):
-    if os.path.isdir(x[0]):
-        if x[0] != package:
-            subdirs_to_include.append(x[0])
-
-files_to_include = []
-for x in glob.glob(os.path.join(package, '*')):
-    if os.path.isfile(x):
-        if x.split('.')[-1] not in ['py']:
-            files_to_include.append(os.path.join(package, os.path.split(x)[1]))
-
-files_to_include.append('README.md')
-files_to_include.append('LICENSE')
-files_to_include.append('readme.md')
-files_to_include.append('licence')
-
-w = open('MANIFEST.in', 'w')
-for i in subdirs_to_include:
-    w.write('include ' + os.path.join(i, '*') + ' \n')
-
-for i in files_to_include:
-    w.write('include ' + i + ' \n')
-
-w.close()
 
 setup(
     name=package,

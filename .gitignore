@@ -4,5 +4,4 @@
 *.pytest_cache
 *.idea
 *.coverage*
-MANIFEST.in
 iraclis/*_local_*

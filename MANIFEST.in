@@ -1,0 +1,9 @@
+include pylightcurve/__description__.txt
+include pylightcurve/__version__.txt
+include pylightcurve/__url__.txt
+include pylightcurve/__author__.txt
+include pylightcurve/__databases__.pickle
+include pylightcurve/__author_email__.txt
+include README.md 
+include LICENSE
+include requirements.txt
