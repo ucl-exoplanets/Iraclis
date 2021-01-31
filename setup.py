@@ -7,7 +7,7 @@ name = 'iraclis'
 version = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), name, '__version__.txt')).read()
 description = 'Analysis pipeline for HST/WFC3 spectroscopic observations of exoplanet transits and eclipses'
 url = 'https://github.com/ucl-exoplanets/Iraclis'
-install_requires = ['docopt', 'pylightcurve>=3.0.5', 'numpy>=1.19.2', 'matplotlib>=3.3.2', 'scipy>=1.5.2',
+install_requires = ['docopt', 'pylightcurve>=3.0.5, <4.0.0', 'numpy>=1.19.2', 'matplotlib>=3.3.2', 'scipy>=1.5.2',
                     'emcee>=3.0.2', 'sklearn', 'astropy>=4.2']
 entry_point = '__main__:console'
 
