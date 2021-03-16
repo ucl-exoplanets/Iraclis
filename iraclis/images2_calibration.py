@@ -195,18 +195,45 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
                   'IR-UVIS-CENTER': 0.135357, 'IR-UVIS': 0.135666, 'IR-UVIS-FIX': 0.135666, 'GRISM1024': 0.135603,
                   'GRISM512': 0.135504, 'GRISM256': 0.135508, 'GRISM128': 0.135474, 'GRISM64': 0.135474}
 
-    x0 = plc.find_single_star(direct_image[1].data,
-                              predicted_x=reference_pixel_x.value + 0.5,
-                              predicted_y=reference_pixel_y.value + 0.5,
-                              star_std=5,
-                              burn_limit=1000000)
+    fit_mean, fit_std = plc.one_d_distribution(direct_image[1].data, gaussian_fit=True, mad_filter=5)[2:4]
+    predicted_x = reference_pixel_x.value + 0.5
+    predicted_y = reference_pixel_y.value + 0.5
 
-    if not x0:
+    centroids = plc.images.find_stars.find_centroids(direct_image[1].data,
+                                          0, len(direct_image[1].data[0]),
+                                          0, len(direct_image[1].data), fit_mean, fit_std,
+                                          1000000, 2, 3)
+    centroids = sorted(centroids, key=lambda x: np.sqrt((x[0] - predicted_x) ** 2 + (x[1] - predicted_y) ** 2))
+
+    x0 = None
+    test_centroid = 0
+
+    while not x0 and test_centroid < len(centroids):
+
         x0 = plc.find_single_star(direct_image[1].data,
-                                  predicted_x=reference_pixel_x.value + 0.5,
-                                  predicted_y=reference_pixel_y.value + 0.5,
+                                  predicted_x=centroids[test_centroid][0] + 0.5,
+                                  predicted_y=centroids[test_centroid][1] + 0.5,
                                   star_std=2,
                                   burn_limit=1000000)
+        test_centroid += 1
+
+    if not x0:
+        centroids = plc.images.find_stars.find_centroids(direct_image[1].data,
+                                                         0, len(direct_image[1].data[0]),
+                                                         0, len(direct_image[1].data), fit_mean, fit_std,
+                                                         1000000, 1, 3)
+        centroids = sorted(centroids, key=lambda x: np.sqrt((x[0] - predicted_x) ** 2 + (x[1] - predicted_y) ** 2))
+
+        x0 = None
+        test_centroid = 0
+
+        while not x0 and test_centroid < len(centroids):
+            x0 = plc.find_single_star(direct_image[1].data,
+                                      predicted_x=centroids[test_centroid][0] + 0.5,
+                                      predicted_y=centroids[test_centroid][1] + 0.5,
+                                      star_std=1,
+                                      burn_limit=1000000)
+            test_centroid += 1
 
     x0 = x0[0]
 
