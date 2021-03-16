@@ -199,7 +199,16 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
                               predicted_x=reference_pixel_x.value + 0.5,
                               predicted_y=reference_pixel_y.value + 0.5,
                               star_std=5,
-                              burn_limit=1000000)[0]
+                              burn_limit=1000000)
+
+    if not x0:
+        x0 = plc.find_single_star(direct_image[1].data,
+                                  predicted_x=reference_pixel_x.value + 0.5,
+                                  predicted_y=reference_pixel_y.value + 0.5,
+                                  star_std=2,
+                                  burn_limit=1000000)
+
+    x0 = x0[0]
 
     grism.from_fits(direct_image)
 
