@@ -842,6 +842,8 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
     if observation_type == 'eclipse':
         mid_time.set(plc.eclipse_mid_time(period.value, sma_over_rs.value, eccentricity.value, inclination.value,
                                           periastron.value, mid_time.value))
+        mid_time.set(mid_time.value + period.value * round((data_time[-1] - mid_time.value) / period.value))
+        
     initial.append(mid_time.value)
     if fit_mid_time.value:
         limits1.append(mid_time.value - 0.1)
