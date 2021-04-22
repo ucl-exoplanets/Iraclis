@@ -1122,10 +1122,10 @@ class Tools:
             os.makedirs(directory)
 
         if not figure:
-            plt.savefig(directory + '/{0}.eps'.format(name), bbox_inches='tight')
+            plt.savefig(directory + '/{0}.pdf'.format(name), bbox_inches='tight')
             plt.close()
         else:
-            figure.savefig(directory + '/{0}.eps'.format(name), bbox_inches='tight')
+            figure.savefig(directory + '/{0}.pdf'.format(name), bbox_inches='tight')
 
 
     def adjust_ticks(self):
