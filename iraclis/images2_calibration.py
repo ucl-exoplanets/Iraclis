@@ -203,7 +203,7 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
                                           0, len(direct_image[1].data[0]),
                                           0, len(direct_image[1].data), fit_mean, fit_std,
                                           1000000, 2, 3)
-    centroids = sorted(centroids, key=lambda x: np.sqrt((x[0] - predicted_x) ** 2 + (x[1] - predicted_y) ** 2))
+    centroids = sorted(centroids, key=lambda x: np.sqrt((x[0] - predicted_x) ** 2))
 
     x0 = None
     test_centroid = 0
