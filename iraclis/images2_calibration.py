@@ -202,7 +202,7 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
     centroids = plc.images.find_stars.find_centroids(direct_image[1].data,
                                           0, len(direct_image[1].data[0]),
                                           0, len(direct_image[1].data), fit_mean, fit_std,
-                                          1000000, 2, 3)
+                                          1000000, 5, 3)
     centroids = sorted(centroids, key=lambda x: np.sqrt((x[0] - predicted_x) ** 2))
 
     x0 = None
@@ -213,7 +213,7 @@ def get_absolute_x_star(fits, direct_image, target_x_offset):
         x0 = plc.find_single_star(direct_image[1].data,
                                   predicted_x=centroids[test_centroid][0] + 0.5,
                                   predicted_y=centroids[test_centroid][1] + 0.5,
-                                  star_std=2,
+                                  star_std=5,
                                   burn_limit=1000000)
         test_centroid += 1
 
