@@ -555,8 +555,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
                 band = 'hst_wfc3_g102_v'
 
             a1, a2, a3, a4 = plc.exotethys(star_logg.value, star_teff.value, 0.0,
-                                           '2mass_j',
-                                           # '{0}{1}'.format(band, j),
+                                           '{0}{1}'.format(band, j),
                                            method=method.value)
 
             ldc1.to_dictionary(bins_dictionaries[j], value=a1)
