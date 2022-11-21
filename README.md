@@ -44,6 +44,21 @@ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 Open a terminal and type: `pip install iraclis`  
 
 
+## Updates
+
+#### v1.5.2 - Improveents and bugs fixes
+- Improved detection of bright and faint stars in the direct image
+- Improved eclipse mid-time prediction
+- Saving figures to PDF instead of EPS
+- Bug fixed: version 1.5 introduced a bug that was muting wavelength-dependent LDCs
+
+#### v1.5.1 - Installation issues fixed
+
+#### v1.5.0 - Updates related to the new PyLightcurve v4
+- Automated detection of planet parameters
+- Conversion of time of BJD_TDB,instead of HJD_UTC
+
+
 ## Usage
 
 #### Getting HST/WFC3 data
