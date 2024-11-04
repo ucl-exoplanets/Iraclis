@@ -1,3 +1,5 @@
+![PyPI Downloads](https://static.pepy.tech/badge/iraclis)
+
 # Iraclis
 
 <img src="https://github.com/ucl-exoplanets/Iraclis/blob/master/logo.jpg" width="25%">
@@ -46,7 +48,8 @@ Open a terminal and type: `pip install iraclis`
 
 ## Updates
 
-#### v.1.5.3 - Improvements and bugs fixes
+#### v.1.5.4 - Improvements and bugs fixes
+- Replace np.product with np.prod 
 - Installation issues fixed
 - Improved detection of bright and faint stars in the direct image
 - Improved eclipse mid-time prediction

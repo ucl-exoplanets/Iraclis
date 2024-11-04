@@ -380,7 +380,7 @@ def fitting(light_curve, fitted_white_light_curve=None, fitting_spectrum=True,
         indices_to_remain = []
         for i in components:
             indices_to_remain.append(np.array(np.abs(i - np.median(i)) < 20 * np.median(np.abs(i - np.median(i)))))
-        indices_to_remain = np.where(np.product(indices_to_remain, 0))[0]
+        indices_to_remain = np.where(np.prod(indices_to_remain, 0))[0]
         indices_to_remain = np.sort(np.unique(np.array(indices_to_remain)))
 
         for i in [bjd_tdb_array, spectrum_direction_array, sky_background_level_array,
